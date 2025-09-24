@@ -495,230 +495,123 @@
 // };
 
 // export default MessageInput;
+import { useRef } from 'react';
 
-import React, { useEffect, useRef, useState } from 'react';
-import SpeechRecognition, {
-  useSpeechRecognition,
-} from 'react-speech-recognition';
-
-const MessageInput = ({ input, setInput, isLoading, onSend, onKeyPress }) => {
+export default function MessageInput({
+  input,
+  setInput,
+  handleKeyPress,
+  handleSend,
+  handleMicClick,
+  listening,
+  isLoading,
+  browserSupportsSpeechRecognition,
+}) {
   const textareaRef = useRef(null);
-  const [isFocused, setIsFocused] = useState(false);
-
-  const {
-    transcript,
-    listening,
-    resetTranscript,
-    browserSupportsSpeechRecognition,
-  } = useSpeechRecognition();
-
-  // Update input with speech transcript
-  useEffect(() => {
-    if (transcript) {
-      setInput(transcript);
-    }
-  }, [transcript, setInput]);
-
-  // Reset textarea height when input is cleared
-  useEffect(() => {
-    if (input === '' && textareaRef.current) {
-      resetTextareaHeight();
-    }
-  }, [input]);
-
-  // Auto-resize textarea when typing
-  useEffect(() => {
-    if (textareaRef.current) {
-      textareaRef.current.style.height = 'auto';
-      textareaRef.current.style.height =
-        Math.min(textareaRef.current.scrollHeight, 80) + 'px';
-    }
-  }, [input]);
-
-  const resetTextareaHeight = () => {
-    if (textareaRef.current) {
-      textareaRef.current.style.height = 'auto';
-      textareaRef.current.style.height = '20px';
-    }
-  };
-
-  const handleInputChange = (e) => {
-    setInput(e.target.value);
-  };
-
-  const handleInputKeyDown = (e) => {
-    if (e.key === 'Enter' && !e.shiftKey) {
-      e.preventDefault();
-      handleSendClick();
-    } else {
-      onKeyPress(e);
-    }
-  };
-
-  const handleSendClick = () => {
-    if (input.trim() && !isLoading) {
-      const message = input.trim();
-      setInput('');
-      resetTextareaHeight();
-      onSend(message);
-      resetTranscript();
-    }
-  };
-
-  const toggleSpeechRecognition = () => {
-    if (listening) {
-      SpeechRecognition.stopListening();
-    } else {
-      resetTranscript();
-      SpeechRecognition.startListening({
-        continuous: true,
-        language: 'en-US',
-      });
-    }
-  };
-
-  const handleMicClick = () => {
-    if (!browserSupportsSpeechRecognition) return;
-    toggleSpeechRecognition();
-  };
 
   return (
-    <div className="w-full px-3 pb-3 pt-1">
-      <div className="max-w-2xl mx-auto">
-        {/* Input Container */}
-        <div
-          className={`relative rounded-lg border transition-all duration-150 ${
-            isFocused ? 'border-gray-400' : 'border-gray-300'
-          } bg-white shadow-xs`}
-        >
-          {/* Textarea Row */}
-          <div className="flex items-center px-3 py-2">
-            <textarea
-              ref={textareaRef}
-              placeholder="Message..."
-              value={input}
-              onChange={handleInputChange}
-              onKeyDown={handleInputKeyDown}
-              onFocus={() => setIsFocused(true)}
-              onBlur={() => setIsFocused(false)}
-              rows={1}
-              className="w-full resize-none border-0 focus:outline-none focus:ring-0 placeholder-gray-500 text-gray-900 text-sm"
-              style={{
-                height: '20px',
-                minHeight: '20px',
-                maxHeight: '80px',
-                lineHeight: '20px',
-              }}
-            />
+    <div className="sticky bottom-0 w-full border-t border-gray-700 bg-gray-900/95 backdrop-blur-md p-3 sm:p-4">
+      <div className="flex items-end gap-2 bg-gray-800 rounded-2xl px-3 py-2 shadow-lg focus-within:ring-2 focus-within:ring-blue-500 transition">
+        {/* Textarea */}
+        <textarea
+          ref={textareaRef}
+          placeholder="Message ChatGPT..."
+          value={input}
+          onChange={(e) => setInput(e.target.value)}
+          onKeyDown={handleKeyPress}
+          rows={1}
+          className="flex-1 w-full resize-none bg-transparent text-white placeholder-gray-400 focus:outline-none text-sm sm:text-base py-2 pr-12 max-h-32"
+          style={{ height: 'auto', overflowY: 'auto' }}
+        />
 
-            {/* Send Button */}
-            {input.trim() && !isLoading && (
-              <button
-                onClick={handleSendClick}
-                className="ml-1 p-1 rounded text-gray-500 hover:bg-gray-100 hover:text-gray-700 transition-colors"
-              >
-                <svg
-                  className="w-4 h-4"
-                  fill="none"
-                  stroke="currentColor"
-                  viewBox="0 0 24 24"
-                >
-                  <path
-                    strokeLinecap="round"
-                    strokeLinejoin="round"
-                    strokeWidth={2}
-                    d="M12 19l9 2-9-18-9 18 9-2zm0 0v-8"
-                  />
-                </svg>
-              </button>
-            )}
-
-            {/* Loading Spinner */}
-            {isLoading && (
-              <div className="ml-1 p-1">
-                <svg
-                  className="animate-spin h-4 w-4 text-gray-400"
-                  fill="none"
-                  viewBox="0 0 24 24"
-                >
-                  <circle
-                    className="opacity-25"
-                    cx="12"
-                    cy="12"
-                    r="10"
-                    stroke="currentColor"
-                    strokeWidth="4"
-                  />
-                  <path
-                    className="opacity-75"
-                    fill="currentColor"
-                    d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4zm2 5.291A7.962 7.962 0 014 12H0c0 3.042 1.135 5.824 3 7.938l3-2.647z"
-                  />
-                </svg>
-              </div>
-            )}
-          </div>
-
-          {/* Bottom Bar - Compact */}
-          <div className="px-3 py-1 border-t border-gray-100 bg-gray-50 rounded-b-lg">
-            <div className="flex items-center justify-between">
-              {/* Voice Button */}
-              <button
-                onClick={handleMicClick}
-                disabled={!browserSupportsSpeechRecognition}
-                className={`p-1 rounded text-xs transition-colors ${
-                  listening
-                    ? 'bg-red-100 text-red-600'
-                    : 'text-gray-400 hover:text-gray-600 hover:bg-gray-100'
-                } ${
-                  !browserSupportsSpeechRecognition
-                    ? 'opacity-30 cursor-not-allowed'
-                    : ''
-                }`}
-              >
-                {listening ? '🛑' : '🎤'}
-              </button>
-
-              {/* Character count and hint */}
-              <div className="flex items-center gap-2 text-xs text-gray-500">
-                {input.length > 0 && (
-                  <span className="text-xs">{input.length}</span>
-                )}
-                <span className="hidden sm:inline">
-                  Shift+Enter for new line
-                </span>
-              </div>
-            </div>
-          </div>
-        </div>
-
-        {/* Compact Speech Status */}
-        {listening && (
-          <div className="flex justify-center mt-1">
-            <div className="flex items-center gap-1 bg-red-50 text-red-700 px-2 py-0.5 rounded text-xs">
-              <div className="flex space-x-0.5">
-                <div className="w-1 h-1 bg-red-500 rounded-full animate-bounce"></div>
-                <div
-                  className="w-1 h-1 bg-red-500 rounded-full animate-bounce"
-                  style={{ animationDelay: '0.1s' }}
-                ></div>
-                <div
-                  className="w-1 h-1 bg-red-500 rounded-full animate-bounce"
-                  style={{ animationDelay: '0.2s' }}
-                ></div>
-              </div>
-              Listening
-            </div>
-          </div>
-        )}
-
-        {/* Compact Footer */}
-        <div className="text-center text-xs text-gray-400 mt-1">
-          AI may produce inaccurate information
+        {/* Buttons */}
+        <div className="flex items-center gap-1 sm:gap-2 pb-1">
+          <MicButton
+            listening={listening}
+            handleMicClick={handleMicClick}
+            browserSupportsSpeechRecognition={browserSupportsSpeechRecognition}
+          />
+          <SendButton
+            handleSend={handleSend}
+            isLoading={isLoading}
+            disabled={!input.trim()}
+          />
         </div>
       </div>
     </div>
   );
-};
+}
 
-export default MessageInput;
+/* ------------------ Mic Button ------------------ */
+function MicButton({
+  listening,
+  handleMicClick,
+  browserSupportsSpeechRecognition,
+}) {
+  return (
+    <button
+      onClick={handleMicClick}
+      disabled={!browserSupportsSpeechRecognition}
+      className={`flex items-center justify-center w-9 h-9 sm:w-10 sm:h-10 rounded-full transition ${
+        listening
+          ? 'bg-red-500 text-white animate-pulse'
+          : 'bg-gray-700 hover:bg-gray-600 text-gray-300'
+      } ${
+        !browserSupportsSpeechRecognition ? 'opacity-50 cursor-not-allowed' : ''
+      }`}
+      title={listening ? 'Stop recording' : 'Start voice input'}
+    >
+      {listening ? (
+        <svg className="w-5 h-5" fill="currentColor" viewBox="0 0 24 24">
+          <path d="M6 6h12v12H6z" />
+        </svg>
+      ) : (
+        <svg className="w-5 h-5" fill="currentColor" viewBox="0 0 24 24">
+          <path d="M12 14c1.66 0 3-1.34 3-3V5a3 3 0 10-6 0v6c0 1.66 1.34 3 3 3z" />
+          <path d="M17 11a5 5 0 11-10 0H5a7 7 0 0014 0h-2z" />
+        </svg>
+      )}
+    </button>
+  );
+}
+
+/* ------------------ Send Button ------------------ */
+function SendButton({ handleSend, isLoading, disabled }) {
+  return (
+    <button
+      onClick={handleSend}
+      disabled={isLoading || disabled}
+      className="flex items-center justify-center w-9 h-9 sm:w-10 sm:h-10 rounded-full bg-blue-600 hover:bg-blue-700 text-white transition disabled:opacity-50 disabled:cursor-not-allowed"
+      title="Send message"
+    >
+      {isLoading ? (
+        <svg
+          className="animate-spin h-5 w-5"
+          xmlns="http://www.w3.org/2000/svg"
+          fill="none"
+          viewBox="0 0 24 24"
+        >
+          <circle
+            className="opacity-25"
+            cx="12"
+            cy="12"
+            r="10"
+            stroke="currentColor"
+            strokeWidth="4"
+          ></circle>
+          <path
+            className="opacity-75"
+            fill="currentColor"
+            d="M4 12a8 8 0 018-8V0C5.37 0 0 5.37 0 12h4zm2 
+            5.29A8 8 0 014 12H0c0 3.04 1.14 5.82 3 
+            7.94l3-2.65z"
+          ></path>
+        </svg>
+      ) : (
+        <svg className="w-5 h-5" fill="currentColor" viewBox="0 0 24 24">
+          <path d="M2.01 21L23 12 2.01 3 2 10l15 2-15 2z" />
+        </svg>
+      )}
+    </button>
+  );
+}
