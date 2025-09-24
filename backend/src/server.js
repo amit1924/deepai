@@ -160,8 +160,6 @@
 //   console.log(`Server running on port ${PORT}...`);
 //   connectDB();
 // });
-
-// backend/src/server.js
 import express from 'express';
 import dotenv from 'dotenv';
 import cookieParser from 'cookie-parser';
@@ -171,7 +169,6 @@ import cors from 'cors';
 import authRoutes from './routes/auth.route.js';
 import messageRoutes from './routes/message.route.js';
 import chatRoutes from './routes/chat.route.js';
-
 import { connectDB } from './lib/db.js';
 import { ENV } from './lib/env.js';
 import {
@@ -179,64 +176,40 @@ import {
   botDetector,
 } from './middleware/rateLimiter.middleware.js';
 
-dotenv.config(); // ensures local .env is loaded
+dotenv.config();
 
 const app = express();
-const PORT = process.env.PORT || 3000; // Render requires dynamic port
+const PORT = process.env.PORT || 3000; // <-- Use Render's port
 const __dirname = path.resolve();
 
-// -----------------------------
 // CORS
-// -----------------------------
-const corsOptions = {
-  origin: ENV.CLIENT_URL,
-  credentials: true,
-};
-app.use(cors(corsOptions));
+app.use(cors({ origin: ENV.CLIENT_URL, credentials: true }));
 
-// -----------------------------
 // Middleware
-// -----------------------------
 app.use(express.json({ limit: '10mb' }));
 app.use(express.urlencoded({ limit: '10mb', extended: true }));
 app.use(cookieParser());
-
-// Bot + Rate limiter
 app.use(botDetector);
-const globalLimiter = new RateLimiter({
-  limit: 2000,
-  windowMs: 15 * 60 * 1000,
-}).getMiddleware();
-app.use(globalLimiter);
+app.use(
+  new RateLimiter({ limit: 2000, windowMs: 15 * 60 * 1000 }).getMiddleware(),
+);
 
-// -----------------------------
-// API Routes
-// -----------------------------
+// API routes
 app.use('/api/auth', authRoutes);
 app.use('/api/messages', messageRoutes);
 app.use('/api/chats', chatRoutes);
 
-// -----------------------------
 // Serve frontend in production
-// -----------------------------
 if (ENV.NODE_ENV === 'production') {
-  const frontendPath = path.join(__dirname, '../../frontend/dist');
+  const frontendPath = path.join(__dirname, '../../frontend/dist'); // <-- note the path
   app.use(express.static(frontendPath));
-
   app.get('*', (_, res) => {
     res.sendFile(path.join(frontendPath, 'index.html'));
   });
 }
 
-// -----------------------------
-// Connect to DB and start server
-// -----------------------------
-connectDB()
-  .then(() => {
-    app.listen(PORT, () => {
-      console.log(`Server running on port ${PORT} in ${ENV.NODE_ENV} mode...`);
-    });
-  })
-  .catch((err) => {
-    console.error('Failed to connect to MongoDB', err);
-  });
+// Start server
+connectDB();
+app.listen(PORT, () => {
+  console.log(`Server running on port ${PORT}...`);
+});
