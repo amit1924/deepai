@@ -20,12 +20,12 @@
 //     }
 //   }, [transcript, setInput]);
 
-//   // Auto-resize textarea
+//   // Auto-resize textarea (shorter + responsive)
 //   useEffect(() => {
 //     const textarea = textareaRef.current;
 //     if (textarea) {
 //       textarea.style.height = 'auto';
-//       textarea.style.height = Math.min(textarea.scrollHeight, 120) + 'px';
+//       textarea.style.height = Math.min(textarea.scrollHeight, 80) + 'px'; // capped at 80px
 //     }
 //   }, [input]);
 
@@ -62,29 +62,40 @@
 //   };
 
 //   return (
-//     <div className="w-full px-4">
-//       {' '}
-//       {/* Fixed this line */}
-//       <div className="relative bg-gray-700 rounded-2xl border border-gray-600 focus-within:border-blue-500 transition-colors duration-200">
-//         <div className="flex items-end p-3">
+//     // <div className="w-full px-4 mb-[5rem] md:mb-0">
+//     //   <div className="relative bg-gray-00 rounded-2xl border border-gray-600 focus-within:border-blue-500 transition-colors duration-200">
+//     //     <div className="flex items-center p-2">
+//     //       <textarea
+//     //         ref={textareaRef}
+//     //         className="flex-1 bg-transparent text-white placeholder-gray-400 resize-none outline-none max-h-10 py-1 px-2 text-sm leading-tight"
+//     //         placeholder="Type your message... (Press Enter to send)"
+//     //         value={input}
+//     //         onChange={handleInputChange}
+//     //         onKeyDown={handleInputKeyDown}
+//     //         rows={1}
+//     //         style={{ minHeight: '32px' }} // shorter default height
+//     //       />
+
+//     <div className="w-full px-2 sm:px-4 mb-[4rem] md:mb-0">
+//       <div className="relative bg-gray-900 rounded-2xl border border-gray-600 focus-within:border-blue-500 transition-colors duration-200">
+//         <div className="flex items-center p-2">
 //           <textarea
 //             ref={textareaRef}
-//             className="flex-1 bg-transparent text-white placeholder-gray-400 resize-none outline-none max-h-32 py-2 px-3"
+//             className="flex-1 bg-transparent text-white placeholder-gray-400 resize-none outline-none min-h-[40px] max-h-[120px] py-2 px-2 text-sm leading-tight"
 //             placeholder="Type your message... (Press Enter to send)"
 //             value={input}
 //             onChange={handleInputChange}
 //             onKeyDown={handleInputKeyDown}
 //             rows={1}
-//             style={{ minHeight: '40px' }}
 //           />
 
 //           {/* Buttons Container */}
-//           <div className="flex items-center gap-2 ml-3">
+//           <div className="flex items-center gap-2 ml-2">
 //             {/* Voice Button */}
 //             <button
 //               onClick={handleMicClick}
 //               disabled={!browserSupportsSpeechRecognition}
-//               className={`p-2 rounded-full transition-colors duration-200 ${
+//               className={`p-2 rounded-full transition-colors duration-200 flex items-center justify-center ${
 //                 listening
 //                   ? 'bg-red-500 text-white animate-pulse'
 //                   : 'text-gray-400 hover:text-white hover:bg-gray-600'
@@ -119,7 +130,7 @@
 //             <button
 //               onClick={handleSendClick}
 //               disabled={isLoading || !input.trim()}
-//               className="p-2 bg-blue-600 text-white rounded-full hover:bg-blue-700 disabled:bg-gray-600 disabled:text-gray-400 disabled:cursor-not-allowed transition-colors duration-200"
+//               className="p-2 bg-blue-600 text-white rounded-full hover:bg-blue-700 disabled:bg-gray-600 disabled:text-gray-400 disabled:cursor-not-allowed transition-colors duration-200 flex items-center justify-center"
 //               title="Send message"
 //             >
 //               {isLoading ? (
@@ -157,10 +168,10 @@
 //         </div>
 
 //         {/* Character count and speech status */}
-//         <div className="flex justify-between items-center px-4 py-2 border-t border-gray-600">
+//         <div className="flex justify-between items-center px-3 py-1 border-t border-gray-600">
 //           <div className="flex items-center gap-2">
 //             {listening && (
-//               <span className="flex items-center gap-2 text-red-400 text-sm">
+//               <span className="flex items-center gap-2 text-red-400 text-xs">
 //                 <span className="flex space-x-1">
 //                   <span className="w-2 h-2 bg-red-400 rounded-full animate-pulse"></span>
 //                   <span className="w-2 h-2 bg-red-400 rounded-full animate-pulse delay-75"></span>
@@ -171,7 +182,7 @@
 //           </div>
 
 //           {input.length > 0 && (
-//             <div className="text-gray-400 text-sm">
+//             <div className="text-gray-400 text-xs">
 //               {input.length} characters
 //             </div>
 //           )}
@@ -182,6 +193,7 @@
 // };
 
 // export default MessageInput;
+
 import React, { useEffect, useRef } from 'react';
 import SpeechRecognition, {
   useSpeechRecognition,
@@ -204,12 +216,12 @@ const MessageInput = ({ input, setInput, isLoading, onSend, onKeyPress }) => {
     }
   }, [transcript, setInput]);
 
-  // Auto-resize textarea (shorter + responsive)
+  // Auto-resize textarea
   useEffect(() => {
     const textarea = textareaRef.current;
     if (textarea) {
       textarea.style.height = 'auto';
-      textarea.style.height = Math.min(textarea.scrollHeight, 80) + 'px'; // capped at 80px
+      textarea.style.height = Math.min(textarea.scrollHeight, 120) + 'px';
     }
   }, [input]);
 
@@ -246,18 +258,17 @@ const MessageInput = ({ input, setInput, isLoading, onSend, onKeyPress }) => {
   };
 
   return (
-    <div className="w-full px-4 mb-9">
-      <div className="relative bg-gray-700 rounded-2xl border border-gray-600 focus-within:border-blue-500 transition-colors duration-200">
+    <div className="w-full px-3 sm:px-4 pb-3 sm:pb-2 bg-gray-900 border-t border-gray-700 md:border-t-0 md:bg-transparent md:relative md:pb-0">
+      <div className="relative bg-gray-900 rounded-2xl border border-gray-600 focus-within:border-blue-500 transition-colors duration-200">
         <div className="flex items-center p-2">
           <textarea
             ref={textareaRef}
-            className="flex-1 bg-transparent text-white placeholder-gray-400 resize-none outline-none max-h-20 py-1 px-2 text-sm leading-tight"
+            className="flex-1 bg-transparent text-white placeholder-gray-400 resize-none outline-none min-h-[40px] max-h-[120px] py-2 px-3 text-sm leading-tight"
             placeholder="Type your message... (Press Enter to send)"
             value={input}
             onChange={handleInputChange}
             onKeyDown={handleInputKeyDown}
             rows={1}
-            style={{ minHeight: '32px' }} // shorter default height
           />
 
           {/* Buttons Container */}
