@@ -1,55 +1,3 @@
-// import { useEffect } from 'react';
-// import { Navigate, Route, Routes } from 'react-router';
-// import { Toaster } from 'react-hot-toast';
-
-// import Sidebar from './componenets/Sidebar';
-// import AiPage from './pages/AiPage';
-// import LoginPage from './pages/LoginPage';
-// import SignupPage from './pages/SignupPage';
-// import { useAuthStore } from './store/useAuthStore';
-// import PageLoader from './componenets/PageLoader';
-
-// function App() {
-//   const { checkAuth, isCheckingAuth, authUser } = useAuthStore();
-
-//   useEffect(() => {
-//     checkAuth();
-//   }, [checkAuth]);
-
-//   if (isCheckingAuth) return <PageLoader />;
-
-//   return (
-//     <div className="h-screen w-full bg-gradient-to-br from-gray-900 via-gray-800 to-black text-white flex">
-//       {authUser && <Sidebar />}
-
-//       <div
-//         className={`flex-1 p-6 overflow-y-auto flex flex-col ${
-//           authUser ? '' : 'justify-center items-center'
-//         }`}
-//       >
-//         <Routes>
-//           <Route
-//             path="/"
-//             element={authUser ? <AiPage /> : <Navigate to="/login" />}
-//           />
-//           <Route
-//             path="/login"
-//             element={!authUser ? <LoginPage /> : <Navigate to="/" />}
-//           />
-//           <Route
-//             path="/signup"
-//             element={!authUser ? <SignupPage /> : <Navigate to="/" />}
-//           />
-//         </Routes>
-//       </div>
-
-//       <Toaster position="top-center" reverseOrder={false} />
-//     </div>
-//   );
-// }
-
-// export default App;
-
 import { useEffect, useState } from 'react';
 import { Navigate, Route, Routes } from 'react-router';
 import { Toaster } from 'react-hot-toast';
@@ -81,10 +29,23 @@ function App() {
     return () => window.removeEventListener('resize', handleResize);
   }, []);
 
+  // Prevent body scroll when sidebar is open on mobile
+  useEffect(() => {
+    if (isSidebarOpen && window.innerWidth < 768) {
+      document.body.style.overflow = 'hidden';
+    } else {
+      document.body.style.overflow = 'unset';
+    }
+
+    return () => {
+      document.body.style.overflow = 'unset';
+    };
+  }, [isSidebarOpen]);
   if (isCheckingAuth) return <PageLoader />;
 
   return (
-    <div className="h-screen w-full bg-gradient-to-br from-gray-900 via-gray-800 to-black text-white flex">
+    // <div className="h-screen w-full bg-gradient-to-br from-gray-900 via-gray-800 to-black text-white flex">
+    <div className="h-screen w-full bg-gradient-to-br from-gray-900 via-gray-800 to-black text-white flex fixed">
       {authUser && (
         <Sidebar
           isSidebarOpen={isSidebarOpen}
