@@ -22,10 +22,10 @@
 
 //   // Auto-resize textarea
 //   useEffect(() => {
-//     if (textareaRef.current) {
-//       textareaRef.current.style.height = 'auto';
-//       textareaRef.current.style.height =
-//         Math.min(textareaRef.current.scrollHeight, 128) + 'px';
+//     const textarea = textareaRef.current;
+//     if (textarea) {
+//       textarea.style.height = 'auto';
+//       textarea.style.height = Math.min(textarea.scrollHeight, 120) + 'px';
 //     }
 //   }, [input]);
 
@@ -62,33 +62,32 @@
 //   };
 
 //   return (
-//     <div className="p-4 border-t border-gray-700 bg-gray-900 rounded-b-lg">
-//       <div className="relative">
-//         <div className="flex items-end bg-gray-800 rounded-xl focus-within:ring-2 focus-within:ring-blue-500 transition-all">
+//     <div className="w-full px-4">
+//       {' '}
+//       {/* Fixed this line */}
+//       <div className="relative bg-gray-700 rounded-2xl border border-gray-600 focus-within:border-blue-500 transition-colors duration-200">
+//         <div className="flex items-end p-3">
 //           <textarea
 //             ref={textareaRef}
-//             placeholder="Type your message... "
+//             className="flex-1 bg-transparent text-white placeholder-gray-400 resize-none outline-none max-h-32 py-2 px-3"
+//             placeholder="Type your message... (Press Enter to send)"
 //             value={input}
 //             onChange={handleInputChange}
 //             onKeyDown={handleInputKeyDown}
 //             rows={1}
-//             className="w-full p-3 pr-20 bg-transparent placeholder-gray-400 text-white resize-none focus:outline-none min-h-[44px] max-h-32"
-//             style={{
-//               height: 'auto',
-//               overflowY: 'auto',
-//             }}
+//             style={{ minHeight: '40px' }}
 //           />
 
 //           {/* Buttons Container */}
-//           <div className="flex items-center gap-1 p-2">
+//           <div className="flex items-center gap-2 ml-3">
 //             {/* Voice Button */}
 //             <button
 //               onClick={handleMicClick}
 //               disabled={!browserSupportsSpeechRecognition}
-//               className={`p-2 rounded-lg transition-colors ${
+//               className={`p-2 rounded-full transition-colors duration-200 ${
 //                 listening
 //                   ? 'bg-red-500 text-white animate-pulse'
-//                   : 'text-gray-400 hover:text-white hover:bg-gray-700'
+//                   : 'text-gray-400 hover:text-white hover:bg-gray-600'
 //               } ${
 //                 !browserSupportsSpeechRecognition
 //                   ? 'opacity-50 cursor-not-allowed'
@@ -120,7 +119,7 @@
 //             <button
 //               onClick={handleSendClick}
 //               disabled={isLoading || !input.trim()}
-//               className="p-2 rounded-lg text-white bg-blue-600 hover:bg-blue-700 disabled:opacity-50 disabled:cursor-not-allowed disabled:bg-gray-600 transition-colors"
+//               className="p-2 bg-blue-600 text-white rounded-full hover:bg-blue-700 disabled:bg-gray-600 disabled:text-gray-400 disabled:cursor-not-allowed transition-colors duration-200"
 //               title="Send message"
 //             >
 //               {isLoading ? (
@@ -158,13 +157,13 @@
 //         </div>
 
 //         {/* Character count and speech status */}
-//         <div className="flex justify-between items-center mt-2 px-1">
-//           <div className="text-xs text-gray-400">
+//         <div className="flex justify-between items-center px-4 py-2 border-t border-gray-600">
+//           <div className="flex items-center gap-2">
 //             {listening && (
-//               <span className="flex items-center gap-1 text-red-400">
-//                 <span className="relative flex h-2 w-2">
-//                   <span className="animate-ping absolute inline-flex h-full w-full rounded-full bg-red-400 opacity-75"></span>
-//                   <span className="relative inline-flex rounded-full h-2 w-2 bg-red-500"></span>
+//               <span className="flex items-center gap-2 text-red-400 text-sm">
+//                 <span className="flex space-x-1">
+//                   <span className="w-2 h-2 bg-red-400 rounded-full animate-pulse"></span>
+//                   <span className="w-2 h-2 bg-red-400 rounded-full animate-pulse delay-75"></span>
 //                 </span>
 //                 Listening... Speak now
 //               </span>
@@ -172,7 +171,7 @@
 //           </div>
 
 //           {input.length > 0 && (
-//             <div className="text-xs text-gray-400">
+//             <div className="text-gray-400 text-sm">
 //               {input.length} characters
 //             </div>
 //           )}
@@ -183,7 +182,6 @@
 // };
 
 // export default MessageInput;
-
 import React, { useEffect, useRef } from 'react';
 import SpeechRecognition, {
   useSpeechRecognition,
@@ -206,12 +204,12 @@ const MessageInput = ({ input, setInput, isLoading, onSend, onKeyPress }) => {
     }
   }, [transcript, setInput]);
 
-  // Auto-resize textarea
+  // Auto-resize textarea (shorter + responsive)
   useEffect(() => {
-    if (textareaRef.current) {
-      textareaRef.current.style.height = 'auto';
-      textareaRef.current.style.height =
-        Math.min(textareaRef.current.scrollHeight, 128) + 'px';
+    const textarea = textareaRef.current;
+    if (textarea) {
+      textarea.style.height = 'auto';
+      textarea.style.height = Math.min(textarea.scrollHeight, 80) + 'px'; // capped at 80px
     }
   }, [input]);
 
@@ -248,33 +246,30 @@ const MessageInput = ({ input, setInput, isLoading, onSend, onKeyPress }) => {
   };
 
   return (
-    <div className="p-4 border-t border-gray-700 bg-gray-900 rounded-b-lg">
-      <div className="relative">
-        <div className="flex items-end bg-gray-800 rounded-xl focus-within:ring-2 focus-within:ring-blue-500 transition-all w-full max-w-full overflow-hidden">
+    <div className="w-full px-4">
+      <div className="relative bg-gray-700 rounded-2xl border border-gray-600 focus-within:border-blue-500 transition-colors duration-200">
+        <div className="flex items-center p-2">
           <textarea
             ref={textareaRef}
-            placeholder="Type your message... "
+            className="flex-1 bg-transparent text-white placeholder-gray-400 resize-none outline-none max-h-20 py-1 px-2 text-sm leading-tight"
+            placeholder="Type your message... (Press Enter to send)"
             value={input}
             onChange={handleInputChange}
             onKeyDown={handleInputKeyDown}
             rows={1}
-            className="flex-1 p-3 pr-20 bg-transparent placeholder-gray-400 text-white resize-none focus:outline-none min-h-[44px] max-h-32 break-words break-all overflow-y-auto"
-            style={{
-              height: 'auto',
-              overflowY: 'auto',
-            }}
+            style={{ minHeight: '32px' }} // shorter default height
           />
 
           {/* Buttons Container */}
-          <div className="flex items-center gap-1 p-2">
+          <div className="flex items-center gap-2 ml-2">
             {/* Voice Button */}
             <button
               onClick={handleMicClick}
               disabled={!browserSupportsSpeechRecognition}
-              className={`p-2 rounded-lg transition-colors ${
+              className={`p-2 rounded-full transition-colors duration-200 flex items-center justify-center ${
                 listening
                   ? 'bg-red-500 text-white animate-pulse'
-                  : 'text-gray-400 hover:text-white hover:bg-gray-700'
+                  : 'text-gray-400 hover:text-white hover:bg-gray-600'
               } ${
                 !browserSupportsSpeechRecognition
                   ? 'opacity-50 cursor-not-allowed'
@@ -306,7 +301,7 @@ const MessageInput = ({ input, setInput, isLoading, onSend, onKeyPress }) => {
             <button
               onClick={handleSendClick}
               disabled={isLoading || !input.trim()}
-              className="p-2 rounded-lg text-white bg-blue-600 hover:bg-blue-700 disabled:opacity-50 disabled:cursor-not-allowed disabled:bg-gray-600 transition-colors"
+              className="p-2 bg-blue-600 text-white rounded-full hover:bg-blue-700 disabled:bg-gray-600 disabled:text-gray-400 disabled:cursor-not-allowed transition-colors duration-200 flex items-center justify-center"
               title="Send message"
             >
               {isLoading ? (
@@ -344,13 +339,13 @@ const MessageInput = ({ input, setInput, isLoading, onSend, onKeyPress }) => {
         </div>
 
         {/* Character count and speech status */}
-        <div className="flex justify-between items-center mt-2 px-1">
-          <div className="text-xs text-gray-400">
+        <div className="flex justify-between items-center px-3 py-1 border-t border-gray-600">
+          <div className="flex items-center gap-2">
             {listening && (
-              <span className="flex items-center gap-1 text-red-400">
-                <span className="relative flex h-2 w-2">
-                  <span className="animate-ping absolute inline-flex h-full w-full rounded-full bg-red-400 opacity-75"></span>
-                  <span className="relative inline-flex rounded-full h-2 w-2 bg-red-500"></span>
+              <span className="flex items-center gap-2 text-red-400 text-xs">
+                <span className="flex space-x-1">
+                  <span className="w-2 h-2 bg-red-400 rounded-full animate-pulse"></span>
+                  <span className="w-2 h-2 bg-red-400 rounded-full animate-pulse delay-75"></span>
                 </span>
                 Listening... Speak now
               </span>
@@ -358,7 +353,7 @@ const MessageInput = ({ input, setInput, isLoading, onSend, onKeyPress }) => {
           </div>
 
           {input.length > 0 && (
-            <div className="text-xs text-gray-400">
+            <div className="text-gray-400 text-xs">
               {input.length} characters
             </div>
           )}
