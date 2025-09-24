@@ -184,10 +184,22 @@ const PORT = ENV.PORT || 3000;
 // -----------------------------
 // CORS
 // -----------------------------
+const allowedOrigins = [
+  'http://localhost:5173', // local dev
+  'https://deepai-frontend.vercel.app', // production frontend
+];
+
 const corsOptions = {
-  origin: ENV.CLIENT_URL || 'http://localhost:5173', // your frontend URL
+  origin: (origin, callback) => {
+    if (!origin || allowedOrigins.includes(origin)) {
+      callback(null, true);
+    } else {
+      callback(new Error('CORS not allowed'));
+    }
+  },
   credentials: true,
 };
+
 app.use(cors(corsOptions));
 
 // -----------------------------
