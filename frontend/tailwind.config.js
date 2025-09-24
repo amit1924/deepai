@@ -4,9 +4,7 @@ export default {
   theme: {
     extend: {
       // Add this for better mobile responsiveness
-      screens: {
-        xs: '475px',
-      },
+
       fontFamily: {
         custom: ['"Poppins"', 'sans-serif'],
       },
