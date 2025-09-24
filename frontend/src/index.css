@@ -2,51 +2,22 @@
 @tailwind components;
 @tailwind utilities;
 
-/* Mobile-specific fixes */
-@layer base {
-  html {
-    -webkit-text-size-adjust: 100%;
-    text-size-adjust: 100%;
-    -webkit-tap-highlight-color: transparent;
-  }
+html,
+body,
+#root {
+  height: 100%;
+  margin: 0;
+}
 
+/* Allow scrolling inside the chat list, but not on the whole page */
+body {
+  background: #000;
+}
+
+/* Prevent iOS from cutting off bottom bar when keyboard opens */
+@supports (-webkit-touch-callout: none) {
   body {
-    -webkit-font-smoothing: antialiased;
-    -moz-osx-font-smoothing: grayscale;
-    text-rendering: optimizeLegibility;
-  }
-}
-
-@layer components {
-  /* Prevent zoom on iOS */
-  input,
-  textarea {
-    font-size: 16px !important;
-    transform: translateZ(0);
-  }
-
-  /* Improve touch interactions */
-  button,
-  [role='button'] {
-    touch-action: manipulation;
-    -webkit-tap-highlight-color: transparent;
-  }
-
-  /* Smooth scrolling */
-  .overflow-y-auto {
-    -webkit-overflow-scrolling: touch;
-    scroll-behavior: smooth;
-  }
-}
-
-/* Hide scrollbar for cleaner look on mobile */
-@layer utilities {
-  .scrollbar-hide {
-    -ms-overflow-style: none;
-    scrollbar-width: none;
-  }
-
-  .scrollbar-hide::-webkit-scrollbar {
-    display: none;
+    position: relative;
+    min-height: 100%;
   }
 }
