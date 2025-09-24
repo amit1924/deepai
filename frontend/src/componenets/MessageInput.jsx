@@ -77,7 +77,7 @@ const MessageInput = ({ input, setInput, isLoading, onSend, onKeyPress }) => {
     //       />
 
     <div className="w-full px-1 sm:px-3 mb-8 md:mb-0">
-      <div className="relative bg-gray-900 rounded-2xl border border-gray-600 focus-within:border-blue-500 transition-colors duration-200">
+      <div className="relative bg-gray-900 rounded-2xl border border-gray-600 focus-within:border-blue-500 transition-colors duration-200 bottom-3">
         <div className="flex items-center px-3 md:p-2">
           <textarea
             ref={textareaRef}
