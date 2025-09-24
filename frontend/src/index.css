@@ -1,0 +1,23 @@
+@tailwind base;
+@tailwind components;
+@tailwind utilities;
+
+html,
+body,
+#root {
+  height: 100%;
+  margin: 0;
+}
+
+/* Allow scrolling inside the chat list, but not on the whole page */
+body {
+  background: #000;
+}
+
+/* Prevent iOS from cutting off bottom bar when keyboard opens */
+@supports (-webkit-touch-callout: none) {
+  body {
+    position: relative;
+    min-height: 100%;
+  }
+}

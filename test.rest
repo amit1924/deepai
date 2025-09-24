@@ -1,0 +1,95 @@
+@useCookieJar
+
+### Signup
+# @name signup
+POST http://localhost:3000/api/auth/signup
+Content-Type: application/json
+
+{
+  "fullName": "Amish Kumar",
+  "email": "rocks.amit19@gmail.com",
+  "password": "password123"
+}
+
+
+### Login
+# @name login
+POST http://localhost:3000/api/auth/login
+Content-Type: application/json
+
+{
+  "email": "rocks.amit19@gmail.com",
+  "password": "password123"
+}
+
+
+### Logout
+# @name logout
+POST http://localhost:3000/api/auth/logout
+Content-Type: application/json
+
+
+### Update Profile Picture
+# @name updateProfile
+PUT http://localhost:3000/api/auth/update-profile
+Content-Type: application/json
+
+{
+  "profilePic": "https://res.cloudinary.com/demo/image/upload/sample.jpg"
+}
+
+
+### User Authentication Check
+# @name checkAuth
+GET http://localhost:3000/api/auth/check
+
+
+### Get All Contacts
+# @name getContacts 
+GET http://localhost:3000/api/messages/contacts
+
+### send a message
+# @name sendMessage
+POST http://localhost:3000/api/messages/send/68c8f0c71946e6bb1cb746c6
+Content-Type: application/json
+
+{
+  "text": "Hello Amit, I am Amish, how are you?"
+}
+//logged in user rocks.amit19@gmail.com send message to the receiver  amit192400@gmail.com
+//Amish sent message to Amit
+# [
+#   {
+#     "senderId": "68c91f6e5b0573fcb4161915",
+#     "receiverId": "68c8f0c71946e6bb1cb746c6",
+#     "text": "Hello Amit, I am Amish, how are you?",
+#     "_id": "68c828c60579338a43a38dcb",//meessage id
+#     "createdAt": "2025-09-15T14:55:02.486Z",
+#     "updatedAt": "2025-09-15T14:55:02.486Z",
+#     "__v": 0
+#   }
+# ]
+
+### Get Messages by User ID
+# @name getMessages
+GET http://localhost:3000/api/messages/68c8f0c71946e6bb1cb746c6
+
+
+### Get Chat Partners
+# @name getChatPartners
+GET http://localhost:3000/api/messages/chats
+//logged in user was rocks.amit19@gmail.com and the other user was amit192400@gmail.com
+
+### Generate text from Pollinations API
+POST https://text.pollinations.ai/ HTTP/1.1
+Content-Type: application/json
+
+{
+  "messages": [
+    {
+      "role": "user",
+      "content": "A futuristic city with flying cars"
+    }
+  ]
+ 
+}
