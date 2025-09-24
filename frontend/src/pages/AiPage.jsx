@@ -727,7 +727,7 @@ const AiPage = ({ setIsSidebarOpen }) => {
 
   if (!activeChat) {
     return (
-      <div className="flex flex-col items-center justify-center h-full text-gray-400 p-4 safe-area-inset-top mobile-viewport">
+      <div className="flex flex-col items-center justify-center h-full text-gray-400 p-4 safe-area-inset-top">
         <div className="text-center">
           <p className="text-xl mb-4">👋 Welcome to AI Chat!</p>
           <p>Select or create a chat to start conversation.</p>
@@ -805,7 +805,7 @@ const AiPage = ({ setIsSidebarOpen }) => {
         </div>
       )}
 
-      {/* Messages Area - This should scroll */}
+      {/* Messages Area */}
       <div
         ref={messagesContainerRef}
         className="flex-1 overflow-y-auto mobile-scroll p-4 md:p-6 flex flex-col gap-3"
@@ -871,8 +871,8 @@ const AiPage = ({ setIsSidebarOpen }) => {
         <div ref={messagesEndRef} className="h-4" />
       </div>
 
-      {/* Input Area - Fixed at bottom */}
-      <div className="flex-shrink-0">
+      {/* Input Area */}
+      <div className="flex-shrink-0 safe-area-inset-bottom">
         <MessageInput
           input={input}
           setInput={setInput}

@@ -791,7 +791,6 @@ const MessageInput = ({ input, setInput, isLoading, onSend, onKeyPress }) => {
     browserSupportsSpeechRecognition,
   } = useSpeechRecognition();
 
-  // Check if device is mobile
   useEffect(() => {
     const checkMobile = () => {
       setIsMobile(/iPhone|iPad|iPod|Android/i.test(navigator.userAgent));
@@ -799,14 +798,12 @@ const MessageInput = ({ input, setInput, isLoading, onSend, onKeyPress }) => {
     checkMobile();
   }, []);
 
-  // Update input with speech transcript
   useEffect(() => {
     if (transcript) {
       setInput(transcript);
     }
   }, [transcript, setInput]);
 
-  // Auto-resize textarea
   useEffect(() => {
     if (textareaRef.current) {
       textareaRef.current.style.height = 'auto';
@@ -856,8 +853,8 @@ const MessageInput = ({ input, setInput, isLoading, onSend, onKeyPress }) => {
   };
 
   return (
-    <div className="border-t border-gray-700 bg-gray-900 safe-area-inset-bottom">
-      <div className="p-4">
+    <div className="border-t border-gray-700 bg-gray-900">
+      <div className="p-3 safe-area-inset-bottom">
         <div className="flex items-end gap-2">
           {/* Textarea */}
           <div className="flex-1 min-w-0">
@@ -870,7 +867,10 @@ const MessageInput = ({ input, setInput, isLoading, onSend, onKeyPress }) => {
                 onKeyDown={handleInputKeyDown}
                 rows={1}
                 className="w-full p-3 bg-transparent placeholder-gray-400 text-white resize-none focus:outline-none min-h-[44px] max-h-32 leading-normal"
-                style={{ overflowY: 'auto' }}
+                style={{
+                  overflowY: 'auto',
+                  fontSize: isMobile ? '16px' : '14px', // Prevent iOS zoom
+                }}
                 inputMode="text"
                 enterKeyHint="send"
               />
