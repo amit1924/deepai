@@ -264,6 +264,7 @@ app.use(
       const allowedOrigins = [
         'http://localhost:5173',
         'https://deepai-frontend.vercel.app',
+        'https://deepai-two.vercel.app',
       ];
 
       // Allow requests with no origin (like mobile apps or curl requests)
