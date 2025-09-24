@@ -248,7 +248,7 @@ const AiPage = ({ setIsSidebarOpen }) => {
       </div>
 
       {/* Input Area */}
-      <div className="border-t border-gray-700 bg-gray-800 p-4">
+      <div className="border-t border-gray-700 bg-gray-800 p-4 mb-8">
         <MessageInput
           input={input}
           setInput={setInput}
