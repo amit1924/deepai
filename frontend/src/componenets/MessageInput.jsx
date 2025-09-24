@@ -246,8 +246,8 @@ const MessageInput = ({ input, setInput, isLoading, onSend, onKeyPress }) => {
   };
 
   return (
-    <div className="w-full px-4">
-      <div className="relative bg-gray-700 rounded-2xl border border-gray-600 focus-within:border-blue-500 transition-colors duration-200">
+    <div className="w-full px-4 ">
+      <div className="relative bg-gray-700 rounded-2xl border border-gray-600 focus-within:border-blue-500 transition-colors duration-200 bottom-3">
         <div className="flex items-center p-2">
           <textarea
             ref={textareaRef}
