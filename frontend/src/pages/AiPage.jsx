@@ -673,10 +673,12 @@ const AiPage = ({ setIsSidebarOpen }) => {
   }, [chatMessages, isLoading]);
 
   const scrollToBottom = () => {
-    messagesEndRef.current?.scrollIntoView({
-      behavior: 'smooth',
-      block: 'nearest',
-    });
+    setTimeout(() => {
+      messagesEndRef.current?.scrollIntoView({
+        behavior: 'smooth',
+        block: 'end',
+      });
+    }, 100);
   };
 
   const handleWeatherData = (weatherData) => {
@@ -712,8 +714,7 @@ const AiPage = ({ setIsSidebarOpen }) => {
       });
     } finally {
       setIsLoading(false);
-      // Scroll to bottom after sending message
-      setTimeout(scrollToBottom, 100);
+      scrollToBottom();
     }
   };
 
@@ -726,7 +727,7 @@ const AiPage = ({ setIsSidebarOpen }) => {
 
   if (!activeChat) {
     return (
-      <div className="flex flex-col items-center justify-center h-full text-gray-400 p-4 safe-area-inset-top">
+      <div className="flex flex-col items-center justify-center h-full text-gray-400 p-4 safe-area-inset-top mobile-viewport">
         <div className="text-center">
           <p className="text-xl mb-4">👋 Welcome to AI Chat!</p>
           <p>Select or create a chat to start conversation.</p>
@@ -744,9 +745,9 @@ const AiPage = ({ setIsSidebarOpen }) => {
   const messages = chatMessages[activeChat._id] || [];
 
   return (
-    <div className="flex flex-col h-full bg-gray-900 safe-area-inset-bottom">
+    <div className="flex flex-col h-full bg-gray-900 mobile-viewport">
       {/* Header */}
-      <div className="p-4 border-b border-gray-700 bg-gray-900 safe-area-inset-top">
+      <div className="p-4 border-b border-gray-700 bg-gray-900 safe-area-inset-top flex-shrink-0">
         <div className="flex items-center gap-4">
           <button
             onClick={() => setIsSidebarOpen(true)}
@@ -799,20 +800,15 @@ const AiPage = ({ setIsSidebarOpen }) => {
 
       {/* Weather Widget */}
       {showWeather && (
-        <div className="px-4 pt-4">
+        <div className="px-4 pt-4 flex-shrink-0">
           <WeatherWidget onWeatherData={handleWeatherData} />
         </div>
       )}
 
-      {/* Messages Area */}
+      {/* Messages Area - This should scroll */}
       <div
         ref={messagesContainerRef}
-        className={`flex-1 overflow-y-auto p-4 md:p-6 flex flex-col gap-3 ${
-          showWeather ? 'pt-0' : ''
-        }`}
-        style={{
-          paddingBottom: 'env(safe-area-inset-bottom, 0px)',
-        }}
+        className="flex-1 overflow-y-auto mobile-scroll p-4 md:p-6 flex flex-col gap-3"
       >
         {messages.length === 0 && !isLoading && (
           <div className="flex flex-col items-center justify-center h-full text-gray-400 text-center">
@@ -872,17 +868,19 @@ const AiPage = ({ setIsSidebarOpen }) => {
           </div>
         )}
 
-        <div ref={messagesEndRef} className="h-2" />
+        <div ref={messagesEndRef} className="h-4" />
       </div>
 
-      {/* Input Area */}
-      <MessageInput
-        input={input}
-        setInput={setInput}
-        isLoading={isLoading}
-        onSend={handleSend}
-        onKeyPress={handleKeyPress}
-      />
+      {/* Input Area - Fixed at bottom */}
+      <div className="flex-shrink-0">
+        <MessageInput
+          input={input}
+          setInput={setInput}
+          isLoading={isLoading}
+          onSend={handleSend}
+          onKeyPress={handleKeyPress}
+        />
+      </div>
     </div>
   );
 };

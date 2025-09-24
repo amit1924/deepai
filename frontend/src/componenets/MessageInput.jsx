@@ -782,9 +782,7 @@ import SpeechRecognition, {
 
 const MessageInput = ({ input, setInput, isLoading, onSend, onKeyPress }) => {
   const textareaRef = useRef(null);
-  const containerRef = useRef(null);
   const [isMobile, setIsMobile] = useState(false);
-  const [isKeyboardVisible, setIsKeyboardVisible] = useState(false);
 
   const {
     transcript,
@@ -798,43 +796,7 @@ const MessageInput = ({ input, setInput, isLoading, onSend, onKeyPress }) => {
     const checkMobile = () => {
       setIsMobile(/iPhone|iPad|iPod|Android/i.test(navigator.userAgent));
     };
-
     checkMobile();
-    window.addEventListener('resize', checkMobile);
-    return () => window.removeEventListener('resize', checkMobile);
-  }, []);
-
-  // Handle keyboard visibility for mobile
-  useEffect(() => {
-    const handleResize = () => {
-      const visualViewport = window.visualViewport;
-      if (visualViewport) {
-        // If viewport height is significantly less than window height, keyboard is likely open
-        const keyboardVisible =
-          visualViewport.height < window.innerHeight * 0.8;
-        setIsKeyboardVisible(keyboardVisible);
-
-        if (keyboardVisible && containerRef.current) {
-          // Scroll input into view when keyboard opens
-          setTimeout(() => {
-            containerRef.current?.scrollIntoView({
-              behavior: 'smooth',
-              block: 'center',
-            });
-          }, 100);
-        }
-      }
-    };
-
-    if (window.visualViewport) {
-      window.visualViewport.addEventListener('resize', handleResize);
-    }
-
-    return () => {
-      if (window.visualViewport) {
-        window.visualViewport.removeEventListener('resize', handleResize);
-      }
-    };
   }, []);
 
   // Update input with speech transcript
@@ -844,56 +806,14 @@ const MessageInput = ({ input, setInput, isLoading, onSend, onKeyPress }) => {
     }
   }, [transcript, setInput]);
 
-  // Reset textarea height when input is cleared
+  // Auto-resize textarea
   useEffect(() => {
-    if (input === '' && textareaRef.current) {
+    if (textareaRef.current) {
       textareaRef.current.style.height = 'auto';
-      textareaRef.current.style.height = '44px';
+      textareaRef.current.style.height =
+        Math.min(textareaRef.current.scrollHeight, 120) + 'px';
     }
   }, [input]);
-
-  // Auto-resize textarea when typing
-  useEffect(() => {
-    const resizeTextarea = () => {
-      if (textareaRef.current) {
-        textareaRef.current.style.height = 'auto';
-        const newHeight = Math.min(textareaRef.current.scrollHeight, 120);
-        textareaRef.current.style.height = newHeight + 'px';
-      }
-    };
-
-    resizeTextarea();
-  }, [input]);
-
-  // Prevent zoom on focus for iOS
-  useEffect(() => {
-    const textarea = textareaRef.current;
-    if (!textarea) return;
-
-    const preventZoom = (e) => {
-      if (e.touches && e.touches.length > 1) {
-        e.preventDefault();
-      }
-    };
-
-    textarea.addEventListener('touchstart', preventZoom);
-
-    // Focus handling for mobile
-    const handleFocus = () => {
-      if (isMobile) {
-        setTimeout(() => {
-          textarea.scrollIntoView({ behavior: 'smooth', block: 'center' });
-        }, 300);
-      }
-    };
-
-    textarea.addEventListener('focus', handleFocus);
-
-    return () => {
-      textarea.removeEventListener('touchstart', preventZoom);
-      textarea.removeEventListener('focus', handleFocus);
-    };
-  }, [isMobile]);
 
   const handleInputChange = (e) => {
     setInput(e.target.value);
@@ -912,14 +832,6 @@ const MessageInput = ({ input, setInput, isLoading, onSend, onKeyPress }) => {
     if (input.trim()) {
       onSend();
       resetTranscript();
-
-      // Reset textarea height after send
-      if (textareaRef.current) {
-        setTimeout(() => {
-          textareaRef.current.style.height = 'auto';
-          textareaRef.current.style.height = '44px';
-        }, 100);
-      }
     }
   };
 
@@ -928,206 +840,66 @@ const MessageInput = ({ input, setInput, isLoading, onSend, onKeyPress }) => {
       SpeechRecognition.stopListening();
     } else {
       resetTranscript();
-      if (isMobile) {
-        SpeechRecognition.startListening({
-          continuous: false,
-          language: 'en-US',
-          interimResults: true,
-        });
-      } else {
-        SpeechRecognition.startListening({ continuous: true });
-      }
+      SpeechRecognition.startListening({
+        continuous: false,
+        language: 'en-US',
+      });
     }
   };
 
   const handleMicClick = () => {
     if (!browserSupportsSpeechRecognition) {
-      alert(
-        'Speech recognition is not supported in your browser. Please use Chrome, Edge, or Safari.',
-      );
+      alert('Speech recognition is not supported in your browser.');
       return;
     }
-
-    if (navigator.vibrate) {
-      navigator.vibrate(50);
-    }
-
     toggleSpeechRecognition();
   };
 
   return (
-    <div
-      ref={containerRef}
-      className="border-t border-gray-700 bg-gray-900 safe-area-inset-bottom"
-      style={{
-        paddingBottom: 'env(safe-area-inset-bottom, 0px)',
-      }}
-    >
+    <div className="border-t border-gray-700 bg-gray-900 safe-area-inset-bottom">
       <div className="p-4">
-        <div className="relative">
-          <div className="flex items-end gap-2">
-            {/* Textarea Container */}
-            <div className="flex-1 min-w-0">
-              <div className="bg-gray-800 rounded-xl focus-within:ring-2 focus-within:ring-blue-500 transition-all">
-                <textarea
-                  ref={textareaRef}
-                  placeholder="Type your message..."
-                  value={input}
-                  onChange={handleInputChange}
-                  onKeyDown={handleInputKeyDown}
-                  rows={1}
-                  className="
-                    w-full 
-                    p-3 
-                    bg-transparent 
-                    placeholder-gray-400 
-                    text-white 
-                    resize-none 
-                    focus:outline-none 
-                    min-h-[44px]
-                    max-h-32
-                    leading-normal
-                  "
-                  style={{
-                    overflowY: 'auto',
-                    WebkitOverflowScrolling: 'touch',
-                    touchAction: 'manipulation',
-                  }}
-                  inputMode="text"
-                  enterKeyHint="send"
-                />
-              </div>
-            </div>
-
-            {/* Buttons Container */}
-            <div className="flex items-center gap-2 flex-shrink-0">
-              {/* Voice Button */}
-              <button
-                onClick={handleMicClick}
-                disabled={!browserSupportsSpeechRecognition}
-                className={`
-                  p-3 
-                  rounded-xl 
-                  transition-colors 
-                  flex-shrink-0
-                  ${
-                    listening
-                      ? 'bg-red-500 text-white animate-pulse'
-                      : 'text-gray-400 hover:text-white hover:bg-gray-700'
-                  }
-                  ${
-                    !browserSupportsSpeechRecognition
-                      ? 'opacity-50 cursor-not-allowed'
-                      : ''
-                  }
-                `}
-                title={listening ? 'Stop recording' : 'Start voice input'}
-                style={{
-                  minHeight: '44px',
-                  minWidth: '44px',
-                  display: 'flex',
-                  alignItems: 'center',
-                  justifyContent: 'center',
-                }}
-              >
-                {listening ? (
-                  <svg
-                    className="w-5 h-5"
-                    fill="currentColor"
-                    viewBox="0 0 24 24"
-                  >
-                    <path d="M6 6h12v12H6z" />
-                  </svg>
-                ) : (
-                  <svg
-                    className="w-5 h-5"
-                    fill="currentColor"
-                    viewBox="0 0 24 24"
-                  >
-                    <path d="M12 14c1.66 0 3-1.34 3-3V5c0-1.66-1.34-3-3-3S9 3.34 9 5v6c0 1.66 1.34 3 3 3z" />
-                    <path d="M17 11c0 2.76-2.24 5-5 5s-5-2.24-5-5H5c0 3.53 2.61 6.43 6 6.92V21h2v-3.08c3.39-.49 6-3.39 6-6.92h-2z" />
-                  </svg>
-                )}
-              </button>
-
-              {/* Send Button */}
-              <button
-                onClick={handleSendClick}
-                disabled={isLoading || !input.trim()}
-                className="
-                  p-3 
-                  rounded-xl 
-                  text-white 
-                  bg-blue-600 
-                  hover:bg-blue-700 
-                  disabled:opacity-50 
-                  disabled:cursor-not-allowed 
-                  disabled:bg-gray-600 
-                  transition-colors 
-                  flex-shrink-0
-                "
-                title="Send message"
-                style={{
-                  minHeight: '44px',
-                  minWidth: '44px',
-                  display: 'flex',
-                  alignItems: 'center',
-                  justifyContent: 'center',
-                }}
-              >
-                {isLoading ? (
-                  <svg
-                    className="animate-spin h-5 w-5"
-                    xmlns="http://www.w3.org/2000/svg"
-                    fill="none"
-                    viewBox="0 0 24 24"
-                  >
-                    <circle
-                      className="opacity-25"
-                      cx="12"
-                      cy="12"
-                      r="10"
-                      stroke="currentColor"
-                      strokeWidth="4"
-                    ></circle>
-                    <path
-                      className="opacity-75"
-                      fill="currentColor"
-                      d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4zm2 5.291A7.962 7.962 0 014 12H0c0 3.042 1.135 5.824 3 7.938l3-2.647z"
-                    ></path>
-                  </svg>
-                ) : (
-                  <svg
-                    className="w-5 h-5"
-                    fill="currentColor"
-                    viewBox="0 0 24 24"
-                  >
-                    <path d="M2.01 21L23 12 2.01 3 2 10l15 2-15 2z" />
-                  </svg>
-                )}
-              </button>
+        <div className="flex items-end gap-2">
+          {/* Textarea */}
+          <div className="flex-1 min-w-0">
+            <div className="bg-gray-800 rounded-xl focus-within:ring-2 focus-within:ring-blue-500">
+              <textarea
+                ref={textareaRef}
+                placeholder="Type your message..."
+                value={input}
+                onChange={handleInputChange}
+                onKeyDown={handleInputKeyDown}
+                rows={1}
+                className="w-full p-3 bg-transparent placeholder-gray-400 text-white resize-none focus:outline-none min-h-[44px] max-h-32 leading-normal"
+                style={{ overflowY: 'auto' }}
+                inputMode="text"
+                enterKeyHint="send"
+              />
             </div>
           </div>
 
-          {/* Character count and speech status */}
-          <div className="flex justify-between items-center mt-2 px-1">
-            <div className="text-xs text-gray-400">
-              {listening && (
-                <span className="flex items-center gap-1 text-red-400">
-                  <span className="relative flex h-2 w-2">
-                    <span className="animate-ping absolute inline-flex h-full w-full rounded-full bg-red-400 opacity-75"></span>
-                    <span className="relative inline-flex rounded-full h-2 w-2 bg-red-500"></span>
-                  </span>
-                  Listening... Speak now
-                </span>
-              )}
-            </div>
+          {/* Buttons */}
+          <div className="flex items-center gap-2 flex-shrink-0">
+            <button
+              onClick={handleMicClick}
+              disabled={!browserSupportsSpeechRecognition}
+              className={`p-3 rounded-xl transition-colors ${
+                listening
+                  ? 'bg-red-500 text-white'
+                  : 'text-gray-400 hover:bg-gray-700'
+              }`}
+              style={{ minHeight: '44px', minWidth: '44px' }}
+            >
+              {listening ? '🛑' : '🎤'}
+            </button>
 
-            {input.length > 0 && (
-              <div className="text-xs text-gray-400">
-                {input.length} characters
-              </div>
-            )}
+            <button
+              onClick={handleSendClick}
+              disabled={isLoading || !input.trim()}
+              className="p-3 rounded-xl text-white bg-blue-600 hover:bg-blue-700 disabled:opacity-50 disabled:bg-gray-600"
+              style={{ minHeight: '44px', minWidth: '44px' }}
+            >
+              {isLoading ? '⏳' : '📤'}
+            </button>
           </div>
         </div>
       </div>
