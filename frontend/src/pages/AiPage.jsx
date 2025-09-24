@@ -398,6 +398,249 @@
 
 // export default AiPage;
 
+// import React, { useState, useEffect, useRef } from 'react';
+// import { useChatStore } from '../store/useChatStore';
+// import { sendMessageToAI } from '../services/AiService';
+// import TypingDots from '../componenets/TypingDots';
+// import MessageRenderer from '../componenets/MessageRenderer';
+// import MessageInput from '../componenets/MessageInput';
+// import WeatherWidget from '../componenets/WeatherWidget';
+
+// const AiPage = ({ setIsSidebarOpen }) => {
+//   const { activeChat, chatMessages, fetchMessages, sendMessage, addMessage } =
+//     useChatStore();
+
+//   const [input, setInput] = useState('');
+//   const [isLoading, setIsLoading] = useState(false);
+//   const [showWeather, setShowWeather] = useState(false);
+//   const [currentWeather, setCurrentWeather] = useState(null);
+//   const messagesEndRef = useRef(null);
+
+//   // Load messages whenever a chat is selected
+//   useEffect(() => {
+//     if (activeChat) {
+//       fetchMessages(activeChat._id);
+//     }
+//   }, [activeChat, fetchMessages]);
+
+//   // Scroll to bottom on new messages
+//   useEffect(() => {
+//     messagesEndRef.current?.scrollIntoView({ behavior: 'smooth' });
+//   }, [chatMessages, isLoading]);
+
+//   const handleWeatherData = (weatherData) => {
+//     setCurrentWeather(weatherData);
+//   };
+
+//   const toggleWeatherWidget = () => {
+//     setShowWeather(!showWeather);
+//   };
+
+//   const handleSend = async () => {
+//     if (!input.trim()) return;
+
+//     const userInput = input;
+//     setInput('');
+//     setIsLoading(true);
+
+//     try {
+//       // Send user message
+//       await sendMessage(activeChat._id, userInput, 'User');
+
+//       // Get previous messages for context
+//       const previousMessages = messages;
+
+//       // Call AI API with context
+//       const aiReplyText = await sendMessageToAI(
+//         userInput,
+//         activeChat._id,
+//         previousMessages,
+//       );
+
+//       // Send AI message
+//       await sendMessage(activeChat._id, aiReplyText, 'AI');
+//     } catch (error) {
+//       console.error('Error in message flow:', error);
+//       addMessage(activeChat._id, {
+//         _id: Date.now() + 1,
+//         sender: 'AI',
+//         text: 'Sorry, I encountered an error. Please try again.',
+//       });
+//     } finally {
+//       setIsLoading(false);
+//     }
+//   };
+
+//   const handleKeyPress = (e) => {
+//     if (e.key === 'Enter' && !e.shiftKey) {
+//       e.preventDefault();
+//       handleSend();
+//     }
+//   };
+
+//   if (!activeChat) {
+//     return (
+//       <div className="flex flex-col items-center justify-center h-full text-gray-400 p-4">
+//         <div className="text-center">
+//           <p className="text-xl mb-4">👋 Welcome to AI Chat!</p>
+//           <p>Select or create a chat to start conversation.</p>
+//           <button
+//             onClick={() => setIsSidebarOpen(true)}
+//             className="mt-4 px-4 py-2 bg-blue-600 rounded-lg hover:bg-blue-500 md:hidden"
+//           >
+//             Open Chats
+//           </button>
+//         </div>
+//       </div>
+//     );
+//   }
+
+//   const messages = chatMessages[activeChat._id] || [];
+
+//   return (
+//     <div className="flex flex-col h-full bg-gray-900 rounded-lg md:rounded-none md:shadow-none shadow-lg">
+//       {/* Header with Hamburger Button */}
+//       <div className="p-4 border-b border-gray-700 bg-gray-900 rounded-t-lg">
+//         <div className="flex items-center gap-4">
+//           {/* Hamburger Button for Mobile */}
+//           <button
+//             onClick={() => setIsSidebarOpen(true)}
+//             className="md:hidden p-2 bg-gray-800 rounded-lg hover:bg-gray-700 transition-colors"
+//             aria-label="Open sidebar"
+//           >
+//             <svg
+//               className="w-6 h-6"
+//               fill="none"
+//               stroke="currentColor"
+//               viewBox="0 0 24 24"
+//             >
+//               <path
+//                 strokeLinecap="round"
+//                 strokeLinejoin="round"
+//                 strokeWidth={2}
+//                 d="M4 6h16M4 12h16M4 18h16"
+//               />
+//             </svg>
+//           </button>
+
+//           <div className="flex-1 min-w-0">
+//             <h2 className="text-xl font-bold text-white truncate">
+//               {activeChat.name || 'New Chat'}
+//             </h2>
+//             <p className="text-sm text-gray-400">{messages.length} messages</p>
+//           </div>
+
+//           {/* Weather Toggle Button */}
+//           <button
+//             onClick={toggleWeatherWidget}
+//             className="p-2 bg-gray-800 rounded-lg hover:bg-gray-700 transition-colors"
+//             title="Toggle Weather"
+//           >
+//             <svg
+//               className="w-5 h-5 text-white"
+//               fill="none"
+//               stroke="currentColor"
+//               viewBox="0 0 24 24"
+//             >
+//               <path
+//                 strokeLinecap="round"
+//                 strokeLinejoin="round"
+//                 strokeWidth={2}
+//                 d="M3 15a4 4 0 004 4h9a5 5 0 10-.1-9.999 5.002 5.002 0 10-9.78 2.096A4 4 0 003 15z"
+//               />
+//             </svg>
+//           </button>
+//         </div>
+//       </div>
+
+//       {/* Weather Widget */}
+//       {showWeather && (
+//         <div className="px-4 pt-4">
+//           <WeatherWidget onWeatherData={handleWeatherData} />
+//         </div>
+//       )}
+
+//       {/* Messages Area */}
+//       <div
+//         className={`flex-1 overflow-y-auto p-4 md:p-6 flex flex-col gap-3 ${
+//           showWeather ? 'pt-0' : ''
+//         }`}
+//       >
+//         {messages.length === 0 && !isLoading && (
+//           <div className="flex flex-col items-center justify-center h-full text-gray-400 text-center">
+//             <div className="mb-4 text-6xl animate-pulse">🤖</div>
+//             <p className="text-lg font-medium mb-2">Start a conversation</p>
+//             <p className="text-sm">I am your AI Assistant. Ask me anything!</p>
+//             <p className="text-sm mt-2 text-blue-400">
+//               Try asking about weather! 🌤️
+//             </p>
+//           </div>
+//         )}
+
+//         {messages.map((msg, index) => (
+//           <div
+//             key={msg._id}
+//             className={`p-3 rounded-xl max-w-full md:max-w-[80%] ${
+//               msg.sender === 'User'
+//                 ? 'bg-blue-800 text-white self-end'
+//                 : 'bg-gray-900 text-gray-200 self-start'
+//             }`}
+//           >
+//             <div className="flex items-center gap-2 mb-1">
+//               <span
+//                 className={`text-xs font-medium ${
+//                   msg.sender === 'User' ? 'text-blue-200' : 'text-gray-400'
+//                 }`}
+//               >
+//                 {msg.sender}
+//               </span>
+//               <span className="text-xs opacity-70">
+//                 {new Date(msg.createdAt || Date.now()).toLocaleTimeString([], {
+//                   hour: '2-digit',
+//                   minute: '2-digit',
+//                 })}
+//               </span>
+//             </div>
+//             {msg.sender === 'AI' ? (
+//               <MessageRenderer text={msg.text} />
+//             ) : (
+//               <div className="whitespace-pre-wrap break-words">{msg.text}</div>
+//             )}
+//           </div>
+//         ))}
+
+//         {isLoading && (
+//           <div className="p-3 rounded-xl max-w-full md:max-w-[80%] bg-gray-800 text-gray-200 self-start">
+//             <div className="flex items-center gap-2 mb-2">
+//               <span className="text-xs font-medium text-gray-400">AI</span>
+//               <span className="text-xs opacity-70">
+//                 {new Date().toLocaleTimeString([], {
+//                   hour: '2-digit',
+//                   minute: '2-digit',
+//                 })}
+//               </span>
+//             </div>
+//             <TypingDots />
+//           </div>
+//         )}
+
+//         <div ref={messagesEndRef} className="h-4" />
+//       </div>
+
+//       {/* Input Area using MessageInput component */}
+//       <MessageInput
+//         input={input}
+//         setInput={setInput}
+//         isLoading={isLoading}
+//         onSend={handleSend}
+//         onKeyPress={handleKeyPress}
+//       />
+//     </div>
+//   );
+// };
+
+// export default AiPage;
+
 import React, { useState, useEffect, useRef } from 'react';
 import { useChatStore } from '../store/useChatStore';
 import { sendMessageToAI } from '../services/AiService';
@@ -415,6 +658,7 @@ const AiPage = ({ setIsSidebarOpen }) => {
   const [showWeather, setShowWeather] = useState(false);
   const [currentWeather, setCurrentWeather] = useState(null);
   const messagesEndRef = useRef(null);
+  const messagesContainerRef = useRef(null);
 
   // Load messages whenever a chat is selected
   useEffect(() => {
@@ -425,8 +669,15 @@ const AiPage = ({ setIsSidebarOpen }) => {
 
   // Scroll to bottom on new messages
   useEffect(() => {
-    messagesEndRef.current?.scrollIntoView({ behavior: 'smooth' });
+    scrollToBottom();
   }, [chatMessages, isLoading]);
+
+  const scrollToBottom = () => {
+    messagesEndRef.current?.scrollIntoView({
+      behavior: 'smooth',
+      block: 'nearest',
+    });
+  };
 
   const handleWeatherData = (weatherData) => {
     setCurrentWeather(weatherData);
@@ -444,20 +695,13 @@ const AiPage = ({ setIsSidebarOpen }) => {
     setIsLoading(true);
 
     try {
-      // Send user message
       await sendMessage(activeChat._id, userInput, 'User');
-
-      // Get previous messages for context
       const previousMessages = messages;
-
-      // Call AI API with context
       const aiReplyText = await sendMessageToAI(
         userInput,
         activeChat._id,
         previousMessages,
       );
-
-      // Send AI message
       await sendMessage(activeChat._id, aiReplyText, 'AI');
     } catch (error) {
       console.error('Error in message flow:', error);
@@ -468,6 +712,8 @@ const AiPage = ({ setIsSidebarOpen }) => {
       });
     } finally {
       setIsLoading(false);
+      // Scroll to bottom after sending message
+      setTimeout(scrollToBottom, 100);
     }
   };
 
@@ -480,7 +726,7 @@ const AiPage = ({ setIsSidebarOpen }) => {
 
   if (!activeChat) {
     return (
-      <div className="flex flex-col items-center justify-center h-full text-gray-400 p-4">
+      <div className="flex flex-col items-center justify-center h-full text-gray-400 p-4 safe-area-inset-top">
         <div className="text-center">
           <p className="text-xl mb-4">👋 Welcome to AI Chat!</p>
           <p>Select or create a chat to start conversation.</p>
@@ -498,11 +744,10 @@ const AiPage = ({ setIsSidebarOpen }) => {
   const messages = chatMessages[activeChat._id] || [];
 
   return (
-    <div className="flex flex-col h-full bg-gray-900 rounded-lg md:rounded-none md:shadow-none shadow-lg">
-      {/* Header with Hamburger Button */}
-      <div className="p-4 border-b border-gray-700 bg-gray-900 rounded-t-lg">
+    <div className="flex flex-col h-full bg-gray-900 safe-area-inset-bottom">
+      {/* Header */}
+      <div className="p-4 border-b border-gray-700 bg-gray-900 safe-area-inset-top">
         <div className="flex items-center gap-4">
-          {/* Hamburger Button for Mobile */}
           <button
             onClick={() => setIsSidebarOpen(true)}
             className="md:hidden p-2 bg-gray-800 rounded-lg hover:bg-gray-700 transition-colors"
@@ -530,7 +775,6 @@ const AiPage = ({ setIsSidebarOpen }) => {
             <p className="text-sm text-gray-400">{messages.length} messages</p>
           </div>
 
-          {/* Weather Toggle Button */}
           <button
             onClick={toggleWeatherWidget}
             className="p-2 bg-gray-800 rounded-lg hover:bg-gray-700 transition-colors"
@@ -562,9 +806,13 @@ const AiPage = ({ setIsSidebarOpen }) => {
 
       {/* Messages Area */}
       <div
+        ref={messagesContainerRef}
         className={`flex-1 overflow-y-auto p-4 md:p-6 flex flex-col gap-3 ${
           showWeather ? 'pt-0' : ''
         }`}
+        style={{
+          paddingBottom: 'env(safe-area-inset-bottom, 0px)',
+        }}
       >
         {messages.length === 0 && !isLoading && (
           <div className="flex flex-col items-center justify-center h-full text-gray-400 text-center">
@@ -577,13 +825,13 @@ const AiPage = ({ setIsSidebarOpen }) => {
           </div>
         )}
 
-        {messages.map((msg, index) => (
+        {messages.map((msg) => (
           <div
             key={msg._id}
             className={`p-3 rounded-xl max-w-full md:max-w-[80%] ${
               msg.sender === 'User'
                 ? 'bg-blue-800 text-white self-end'
-                : 'bg-gray-900 text-gray-200 self-start'
+                : 'bg-gray-800 text-gray-200 self-start'
             }`}
           >
             <div className="flex items-center gap-2 mb-1">
@@ -624,10 +872,10 @@ const AiPage = ({ setIsSidebarOpen }) => {
           </div>
         )}
 
-        <div ref={messagesEndRef} className="h-4" />
+        <div ref={messagesEndRef} className="h-2" />
       </div>
 
-      {/* Input Area using MessageInput component */}
+      {/* Input Area */}
       <MessageInput
         input={input}
         setInput={setInput}
