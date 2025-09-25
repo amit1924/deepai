@@ -76,13 +76,13 @@ const MessageInput = ({ input, setInput, isLoading, onSend, onKeyPress }) => {
     //         style={{ minHeight: '32px' }} // shorter default height
     //       />
 
-    <div className="w-full px-1 sm:px-3 mb-8 md:mb-0">
+    <div className="w-full px-1 sm:px-3 mb-8 md:mb-0 ">
       <div className="relative bg-gray-900 rounded-2xl border border-gray-600 focus-within:border-blue-500 transition-colors duration-200 bottom-3">
         <div className="flex items-center px-3 md:p-2">
           <textarea
             ref={textareaRef}
-            className="flex-1 bg-transparent text-white placeholder-gray-400 resize-none outline-none min-h-[40px] max-h-[120px] py-2 px-2 text-sm leading-tight"
-            placeholder="Type your message... (Press Enter to send)"
+            className="flex-1 bg-transparent text-white placeholder-gray-400 resize-none outline-none min-h-[40px] max-h-[120px] py-3 px-2 text-xl leading-tight "
+            placeholder="Type your message..."
             value={input}
             onChange={handleInputChange}
             onKeyDown={handleInputKeyDown}

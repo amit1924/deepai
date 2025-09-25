@@ -1,135 +1,113 @@
-import React from 'react';
+// import React, { useState } from 'react';
+// import ReactMarkdown from 'react-markdown';
+// import remarkGfm from 'remark-gfm';
+// import rehypeHighlight from 'rehype-highlight';
+// import 'highlight.js/styles/vs2015.css'; // or any theme
 
-// Clean Markdown-like symbols (*, **, _, __)
-const cleanText = (str) => {
-  if (!str) return '';
-  return str
-    .replace(/\*\*(.*?)\*\*/g, '$1')
-    .replace(/\*(.*?)\*/g, '$1')
-    .replace(/__(.*?)__/g, '$1')
-    .replace(/_(.*?)_/g, '$1');
-};
+// const MessageRenderer = ({ text }) => {
+//   const [copied, setCopied] = useState(false);
 
-const parseToBlocks = (text) => {
-  if (!text) return [];
-  const lines = text.split(/\r?\n/);
-  const blocks = [];
-  let currentList = null;
+//   const copyMessage = async () => {
+//     await navigator.clipboard.writeText(text);
+//     setCopied(true);
+//     setTimeout(() => setCopied(false), 2000);
+//   };
 
-  const pushList = () => {
-    if (!currentList) return;
-    blocks.push(currentList);
-    currentList = null;
-  };
+//   return (
+//     <div className="message-renderer">
+//       <div className="message-copy-container">
+//         <button onClick={copyMessage} className="message-copy-full-button">
+//           {copied ? '✅ Copied!' : '📋 Copy Message'}
+//         </button>
+//       </div>
 
-  for (let raw of lines) {
-    const line = cleanText(raw.trim());
-    if (line === '') {
-      pushList();
-      continue;
-    }
+//       <div className="message-content prose prose-invert max-w-none">
+//         <ReactMarkdown
+//           remarkPlugins={[remarkGfm]}
+//           rehypePlugins={[rehypeHighlight]}
+//         >
+//           {text}
+//         </ReactMarkdown>
+//       </div>
+//     </div>
+//   );
+// };
 
-    // Headings
-    const hMatch = line.match(/^(#{1,6})\s+(.*)$/);
-    if (hMatch) {
-      pushList();
-      const level = hMatch[1].length;
-      blocks.push({ type: 'heading', level, text: hMatch[2] });
-      continue;
-    }
+// export default MessageRenderer;
 
-    // Unordered list
-    const ulMatch = line.match(/^[-*+]\s+(.*)$/);
-    if (ulMatch) {
-      if (!currentList) currentList = { type: 'ul', items: [] };
-      if (currentList.type !== 'ul') {
-        pushList();
-        currentList = { type: 'ul', items: [] };
-      }
-      currentList.items.push(ulMatch[1]);
-      continue;
-    }
-
-    // Ordered list
-    const olMatch = line.match(/^\d+\.\s+(.*)$/);
-    if (olMatch) {
-      if (!currentList) currentList = { type: 'ol', items: [] };
-      if (currentList.type !== 'ol') {
-        pushList();
-        currentList = { type: 'ol', items: [] };
-      }
-      currentList.items.push(olMatch[1]);
-      continue;
-    }
-
-    // Paragraph
-    pushList();
-    blocks.push({ type: 'p', text: line });
-  }
-
-  pushList();
-  return blocks;
-};
-
-const headingColorByLevel = {
-  1: 'text-emerald-400',
-  2: 'text-sky-400',
-  3: 'text-amber-300',
-  4: 'text-indigo-300',
-  5: 'text-pink-300',
-  6: 'text-lime-300',
-};
+import React, { useState } from 'react';
+import ReactMarkdown from 'react-markdown';
+import remarkGfm from 'remark-gfm';
+import rehypeHighlight from 'rehype-highlight';
+import 'highlight.js/styles/vs2015.css'; // try 'atom-one-dark.css' for more color
 
 const MessageRenderer = ({ text }) => {
-  const blocks = parseToBlocks(text);
+  const [copied, setCopied] = useState(false);
+
+  const copyMessage = async () => {
+    try {
+      await navigator.clipboard.writeText(text);
+      setCopied(true);
+      setTimeout(() => setCopied(false), 2000);
+    } catch (err) {
+      console.error('Copy failed:', err);
+    }
+  };
 
   return (
-    <div className="prose prose-invert max-w-full break-words">
-      {blocks.map((b, i) => {
-        if (b.type === 'heading') {
-          const baseClass =
-            b.level === 1
-              ? 'text-2xl md:text-3xl font-extrabold leading-relaxed mb-6'
-              : b.level === 2
-              ? 'text-xl md:text-2xl font-bold leading-relaxed mb-5'
-              : 'text-lg md:text-xl font-semibold leading-relaxed mb-4';
-          const color = headingColorByLevel[b.level] || 'text-white';
-          return (
-            <div key={i} className={`${baseClass} ${color}`}>
-              {b.text}
-            </div>
-          );
-        }
+    <div className="message-renderer">
+      {/* 📋 Copy button */}
+      <div className="message-copy-container mb-2 ">
+        <button
+          onClick={copyMessage}
+          className="px-3 py-1 rounded-lg bg-gray-700 text-sm hover:bg-gray-600 transition "
+        >
+          {copied ? '✅ Copied!' : '📋 Copy'}
+        </button>
+      </div>
 
-        if (b.type === 'ul' || b.type === 'ol') {
-          return (
-            <div
-              key={i}
-              className="mb-5 pl-6 text-lg leading-loose text-gray-200"
-            >
-              {b.type === 'ul' ? (
-                <ul className="list-disc space-y-3">
-                  {b.items.map((it, idx) => (
-                    <li key={idx}>{it}</li>
-                  ))}
-                </ul>
-              ) : (
-                <ol className="list-decimal space-y-3">
-                  {b.items.map((it, idx) => (
-                    <li key={idx}>{it}</li>
-                  ))}
-                </ol>
-              )}
-            </div>
-          );
-        }
+      {/* 📝 Render markdown with colorful custom Tailwind styles */}
+      <div
+        className="
+          message-content prose prose-invert max-w-none
 
-        return (
-          <p key={i} className="mb-5 text-lg text-gray-200 leading-loose">
-            {b.text}
-          </p>
-        );
-      })}
+          /* 🎨 Headings */
+          prose-h1:text-3xl prose-h1:font-bold prose-h1:text-pink-400
+          prose-h2:text-2xl prose-h2:font-semibold prose-h2:text-purple-400
+          prose-h3:text-xl prose-h3:font-medium prose-h3:text-cyan-400
+
+          /* 📝 Paragraphs */
+          prose-p:leading-relaxed prose-p:text-gray-200
+
+          /* ✨ Bold + Inline Code */
+          prose-strong:text-yellow-300
+          prose-code:bg-gray-800 prose-code:text-green-300 prose-code:px-1 prose-code:py-0.5 prose-code:rounded
+
+          /* 📦 Code Blocks */
+          prose-pre:bg-gray-900 prose-pre:p-4 prose-pre:rounded-xl prose-pre:shadow-lg
+
+          /* 💬 Blockquotes */
+          prose-blockquote:border-l-4 prose-blockquote:border-emerald-500 prose-blockquote:pl-4 prose-blockquote:text-emerald-300
+
+          /* 🔵 Unordered Lists */
+          prose-ul:list-disc prose-ul:pl-6 prose-li:marker:text-orange-400 prose-li:text-gray-200
+
+          /* 🔢 Ordered Lists */
+          prose-ol:list-decimal prose-ol:pl-6 prose-ol:marker:text-indigo-400 prose-li:text-gray-200
+
+          /* 📊 Tables */
+          prose-table:border prose-table:border-gray-700
+          prose-th:bg-slate-700 prose-th:text-pink-300 prose-th:px-3 prose-th:py-2
+          prose-td:border prose-td:border-gray-700 prose-td:px-3 prose-td:py-2 prose-td:text-gray-300
+        "
+      >
+        <ReactMarkdown
+          remarkPlugins={[remarkGfm]} // GitHub-style Markdown (tables, checklists, etc.)
+          rehypePlugins={[rehypeHighlight]} // Syntax highlighting
+        >
+          {text}
+        </ReactMarkdown>
+      </div>
     </div>
   );
 };

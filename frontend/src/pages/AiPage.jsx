@@ -203,8 +203,8 @@ const AiPage = ({ setIsSidebarOpen }) => {
             key={msg._id}
             className={`p-4 rounded-2xl max-w-full md:max-w-[80%] lg:max-w-[70%] break-words ${
               msg.sender === 'User'
-                ? 'bg-blue-800 text-white ml-auto'
-                : 'bg-gray-900 text-gray-200 mr-auto'
+                ? 'bg-gray-800 text-slate-100 ml-auto text-2xl font-bold'
+                : ' text-gray-200 mr-auto font-semibold'
             }`}
           >
             <div className="flex items-center gap-2 mb-2">

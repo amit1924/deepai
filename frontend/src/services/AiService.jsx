@@ -1,7 +1,7 @@
 import axios from 'axios';
 import WeatherService from './WeatherService';
 
-// Weather command patterns
+// Weather command patterns (keep your existing patterns)
 const WEATHER_COMMANDS = [
   /weather in (.+)/i,
   /what's the weather in (.+)/i,
@@ -50,11 +50,31 @@ export const sendMessageToAI = async (
         messages: [
           {
             role: 'system',
-            content: `You are a thoughtful and knowledgeable AI assistant with access to weather information. 
-- For weather questions, provide accurate current data in plain language. 
-- For all queries, explain concepts in detail, using multiple sentences and practical examples. 
-- Expand on context where helpful, and aim for 9–10 sentences or more per reply. 
-- Maintain a clear, friendly, and professional tone.`,
+            content: `
+You are a thoughtful and knowledgeable AI assistant.
+
+## Response Formatting Rules
+- Use headings (#, ##, ###) for sections
+- Use bullet points (- or *) for lists
+- Use **bold** for emphasis
+- Use \`inline code\` and \`\`\`code blocks\`\`\`
+- Use > for blockquotes
+- Use tables (| column | column |) for any comparison or list with multiple items
+- Separate sections with blank lines
+
+## Comparison Questions
+Whenever the user asks for a comparison (e.g., Python vs Java, Java vs C++):
+- Present the comparison in a **Markdown table**
+- Include features like Syntax, Typing, Performance, Use Cases, etc.
+- Add extra notes in bullet points below the table if necessary
+- Make the table concise, clear, and readable
+- Ensure proper spacing and headings
+
+## General Guidelines
+- Responses must be Markdown-ready
+- Be mobile-friendly, clear, and well-structured
+- Use at least 4-5 sentences per reply
+        `,
           },
           ...conversationHistory.slice(-10),
           {
@@ -79,7 +99,7 @@ export const sendMessageToAI = async (
   }
 };
 
-// Check if message contains weather query
+// Check if message contains weather query (keep your existing function)
 const checkWeatherQuery = (message) => {
   const lowerMessage = message.toLowerCase();
 
@@ -101,7 +121,7 @@ const checkWeatherQuery = (message) => {
   return null;
 };
 
-// Handle weather queries
+// Enhanced weather query handler
 const handleWeatherQuery = async (weatherMatch, originalMessage) => {
   try {
     let weatherData;
@@ -114,14 +134,49 @@ const handleWeatherQuery = async (weatherMatch, originalMessage) => {
 
     const weatherString = WeatherService.getFormattedWeatherString(weatherData);
 
-    return `Here's the current weather information:\n\n${weatherString}\n\n${weatherData.icon} *${weatherData.description}* in ${weatherData.city}, ${weatherData.country}`;
+    return `## 🌤️ Weather Report for ${weatherData.city}, ${weatherData.country}
+
+**Current Conditions:** ${weatherData.icon} *${weatherData.description}*
+
+### 📊 Detailed Information:
+- **Temperature:** ${weatherData.temperature}°C (feels like ${weatherData.feelsLike}°C)
+- **Humidity:** ${weatherData.humidity}%
+- **Wind:** ${weatherData.windSpeed} km/h ${weatherData.windDirection}
+- **Pressure:** ${weatherData.pressure} hPa
+- **Visibility:** ${weatherData.visibility} km
+
+### 🌅 Additional Details:
+- **Sunrise:** ${weatherData.sunrise}
+- **Sunset:** ${weatherData.sunset}
+- **UV Index:** ${weatherData.uvIndex}
+
+${weatherString}
+
+*Last updated: ${weatherData.lastUpdated}*`;
   } catch (error) {
     console.error('Weather query error:', error);
 
     if (weatherMatch.type === 'current_location') {
-      return "I couldn't access your current location. Please make sure location permissions are enabled, or try asking about weather in a specific city like 'weather in London'.";
+      return `## ❌ Location Access Issue
+
+I couldn't access your current location. Please:
+
+- Enable location permissions in your browser
+- Allow location access for this site
+- Or try asking about a specific city like "weather in London"
+
+**Alternative:** You can also provide your city name for weather information.`;
     } else {
-      return `Sorry, I couldn't find weather data for "${weatherMatch.city}". Please check the city name and try again. You can also ask about weather in your current location by saying "current weather" or "weather here".`;
+      return `## ❌ Weather Data Not Found
+
+Sorry, I couldn't find weather data for "${weatherMatch.city}".
+
+### 🔍 Troubleshooting Tips:
+- Check if the city name is spelled correctly
+- Try using the format "City, Country" 
+- Ensure the city exists and is supported
+
+**Example:** "weather in London, UK" or "temperature in New York"`;
     }
   }
 };
