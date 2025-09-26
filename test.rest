@@ -93,3 +93,22 @@ Content-Type: application/json
   ]
  
 }
+
+### Generate Image (Async)
+POST https://stablehorde.net/api/v2/generate/async
+Content-Type: application/json
+apikey:8WP0IIRm6c6EXFnYx-hamw
+
+{
+  "prompt": "a red flying balloon in the sky",
+  "params": {
+    "n": 1,
+    "width": 512,
+    "height": 512,
+    "steps": 20
+  }
+}
+
+### Check Generation Status
+GET https://stablehorde.net/api/v2/generate/status/38d9874f-2b18-4e22-a1d2-d8f333f6a0ed
+apikey: YOUR_REAL_ACCOUNT_KEY
