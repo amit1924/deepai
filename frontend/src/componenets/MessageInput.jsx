@@ -558,23 +558,6 @@ const MessageInput = ({
                   Image attached
                 </span>
               )}
-
-              {input.length > 0 && (
-                <div
-                  className={`
-                  px-2 py-1 rounded-md font-medium
-                  ${
-                    input.length > 800
-                      ? 'text-red-600 dark:text-red-400 bg-red-50 dark:bg-red-900/20'
-                      : input.length > 500
-                      ? 'text-yellow-600 dark:text-yellow-400 bg-yellow-50 dark:bg-yellow-900/20'
-                      : 'text-gray-600 dark:text-gray-400 bg-gray-100 dark:bg-gray-700'
-                  }
-                `}
-                >
-                  {input.length} / 1000
-                </div>
-              )}
             </div>
           </div>
         )}
