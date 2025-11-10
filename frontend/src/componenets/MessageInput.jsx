@@ -464,7 +464,7 @@ const MessageInput = ({
           <div className="flex-1 min-w-0">
             <textarea
               ref={textareaRef}
-              className="w-full bg-transparent text-gray-900 dark:text-white placeholder-gray-500 dark:placeholder-gray-400 resize-none outline-none min-h-[40px] max-h-[80px] py-2 px-3 text-base leading-normal rounded-lg border-0 focus:ring-0 transition-all duration-200 scrollbar-thin scrollbar-thumb-gray-300 dark:scrollbar-thumb-gray-600 scrollbar-track-transparent"
+              className="w-full bg-transparent text-gray-900 dark:text-white placeholder-gray-500 dark:placeholder-gray-400 resize-none outline-none min-h-[10px] max-h-[60px] py-1 px-1 text-base leading-normal rounded-lg border-0 focus:ring-0 transition-all duration-200 scrollbar-thin scrollbar-thumb-gray-300 dark:scrollbar-thumb-gray-600 scrollbar-track-transparent"
               placeholder={
                 hasImage ? 'Ask about the image...' : 'Type your message...'
               }
