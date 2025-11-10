@@ -446,7 +446,7 @@ body {
   }
 }
 /* Message input  */
-/* Add to your global CSS */
+
 .scrollbar-thin::-webkit-scrollbar {
   width: 4px;
   height: 4px;
@@ -477,7 +477,7 @@ body {
 /* Ensure proper touch targets on mobile */
 @media (max-width: 768px) {
   button {
-    min-width: 44px;
+    min-width: 34px;
     min-height: 44px;
   }
 }
