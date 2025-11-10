@@ -251,8 +251,8 @@ const MessageRenderer = ({ text }) => {
   return (
     <div
       ref={contentRef}
-      className="message-renderer relative bg-gradient-to-br from-gray-900 via-slate-900 to-gray-800 rounded-2xl shadow-2xl border border-gray-700/50 backdrop-blur-sm p-4 mb-6 animate-fade-in
-                 sm:p-6" // More padding on larger screens
+      className="message-renderer relative bg-gradient-to-br from-gray-900 via-slate-900 to-gray-800 rounded-2xl shadow-2xl border border-gray-700/50 backdrop-blur-sm p-1 mb-6 animate-fade-in
+                 sm:p-6"
     >
       {/* Main Copy Button for entire message */}
       <div className="absolute -top-3 -right-3 z-20 hidden sm:flex">
