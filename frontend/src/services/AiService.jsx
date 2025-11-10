@@ -628,23 +628,42 @@
 /////////////////////////////////////////////////
 import WeatherService from './WeatherService';
 
-// Remove static imports for AI - use dynamic imports
+// Remove AI initialization - we'll use a different approach
+let aiInitialized = false;
 let genAI = null;
 let model = null;
 
-// Initialize AI only when needed
+// Initialize AI only when needed with proper error handling
 const initializeAI = async () => {
-  if (!genAI) {
-    try {
-      const { GoogleGenerativeAI } = await import('@google/generative-ai');
-      genAI = new GoogleGenerativeAI(import.meta.env.VITE_API_KEY);
-      model = genAI.getGenerativeModel({ model: 'gemini-2.0-flash' });
-    } catch (error) {
-      console.error('Failed to initialize AI:', error);
-      throw new Error('AI service initialization failed');
-    }
+  if (aiInitialized && model) {
+    return model;
   }
-  return model;
+
+  try {
+    // Check if we're in a browser environment
+    if (typeof window === 'undefined') {
+      throw new Error('AI service only available in browser environment');
+    }
+
+    // Use window global for dynamic import to work in Vercel
+    const { GoogleGenerativeAI } = await import(
+      'https://esm.run/@google/generative-ai'
+    );
+
+    if (!import.meta.env.VITE_API_KEY) {
+      throw new Error('Missing API key');
+    }
+
+    genAI = new GoogleGenerativeAI(import.meta.env.VITE_API_KEY);
+    model = genAI.getGenerativeModel({ model: 'gemini-2.5-flash' });
+    aiInitialized = true;
+
+    return model;
+  } catch (error) {
+    console.error('Failed to initialize AI:', error);
+    aiInitialized = false;
+    throw new Error(`AI service unavailable: ${error.message}`);
+  }
 };
 
 // Weather command patterns
@@ -672,6 +691,60 @@ const CURRENT_LOCATION_WEATHER_COMMANDS = [
   /what's the weather/i,
 ];
 
+// Alternative: Use a fetch-based approach to Gemini API
+const fetchAIDirect = async (message, imageData = null) => {
+  try {
+    const API_KEY = import.meta.env.VITE_API_KEY;
+
+    if (!API_KEY) {
+      throw new Error('Missing Gemini API key');
+    }
+
+    const url = `https://generativelanguage.googleapis.com/v1beta/models/gemini-1.5-flash:generateContent?key=${API_KEY}`;
+
+    const requestBody = {
+      contents: [
+        {
+          parts: [{ text: message }],
+        },
+      ],
+    };
+
+    // Add image data if provided
+    if (imageData) {
+      const base64Data = imageData.split(',')[1];
+      requestBody.contents[0].parts.push({
+        inline_data: {
+          mime_type: 'image/png',
+          data: base64Data,
+        },
+      });
+    }
+
+    const response = await fetch(url, {
+      method: 'POST',
+      headers: {
+        'Content-Type': 'application/json',
+      },
+      body: JSON.stringify(requestBody),
+    });
+
+    if (!response.ok) {
+      const errorData = await response.json();
+      throw new Error(errorData.error?.message || 'AI request failed');
+    }
+
+    const data = await response.json();
+    return (
+      data.candidates?.[0]?.content?.parts?.[0]?.text ||
+      "I couldn't generate a response."
+    );
+  } catch (error) {
+    console.error('Direct AI fetch error:', error);
+    throw error;
+  }
+};
+
 // Gemini AI response function
 const fetchAIResponse = async (
   message,
@@ -679,53 +752,47 @@ const fetchAIResponse = async (
   mimeType = 'image/png',
 ) => {
   try {
-    const aiModel = await initializeAI();
-
-    if (!aiModel) {
-      throw new Error('AI model not available');
-    }
-
-    const contents = imageData
-      ? [
-          {
-            role: 'user',
-            parts: [
-              { text: message },
-              {
-                inlineData: {
-                  data: imageData.split(',')[1],
-                  mimeType: mimeType,
-                },
-              },
-            ],
-          },
-        ]
-      : [{ role: 'user', parts: [{ text: message }] }];
-
-    const result = await aiModel.generateContent({ contents });
-    return (
-      result?.response?.candidates?.[0]?.content?.parts?.[0]?.text ||
-      "I couldn't generate a response. Please try again."
-    );
+    // Try direct fetch first (more reliable for deployment)
+    return await fetchAIDirect(message, imageData);
   } catch (error) {
-    console.error('Error fetching AI response:', error);
+    console.error('Direct fetch failed, trying SDK:', error);
 
-    if (error.message?.includes('API_KEY') || error.message?.includes('key')) {
+    // Fallback to SDK if direct fetch fails
+    try {
+      const aiModel = await initializeAI();
+
+      if (!aiModel) {
+        throw new Error('AI model not available');
+      }
+
+      const contents = imageData
+        ? [
+            {
+              role: 'user',
+              parts: [
+                { text: message },
+                {
+                  inlineData: {
+                    data: imageData.split(',')[1],
+                    mimeType: mimeType,
+                  },
+                },
+              ],
+            },
+          ]
+        : [{ role: 'user', parts: [{ text: message }] }];
+
+      const result = await aiModel.generateContent({ contents });
+      return (
+        result?.response?.candidates?.[0]?.content?.parts?.[0]?.text ||
+        "I couldn't generate a response. Please try again."
+      );
+    } catch (sdkError) {
+      console.error('Both AI methods failed:', sdkError);
       throw new Error(
-        'Invalid or missing API key. Please check your configuration.',
+        'AI service is currently unavailable. Please try again later.',
       );
     }
-
-    if (
-      error.message?.includes('quota') ||
-      error.message?.includes('rate limit')
-    ) {
-      throw new Error('API quota exceeded. Please try again later.');
-    }
-
-    throw new Error(
-      'Failed to get AI response. Please check your connection and try again.',
-    );
   }
 };
 
@@ -850,30 +917,25 @@ You are a thoughtful and knowledgeable AI assistant.
 - Use **bold** for emphasis
 - Use \`inline code\` and \`\`\`code blocks\`\`\`
 - Use > for blockquotes
-- Use tables (| column | column |) for any comparison or list with multiple items
+- Use tables for comparisons
 - Separate sections with blank lines
 
 ## Comparison Questions
-Whenever the user asks for a comparison (e.g., Python vs Java, Java vs C++):
-- Present the comparison in a **Markdown table**
-- Include features like Syntax, Typing, Performance, Use Cases, etc.
-- Add extra notes in bullet points below the table if necessary
-- Make the table concise, clear, and readable
-- Ensure proper spacing and headings
+When asked for comparisons, use Markdown tables with relevant features.
 
 ## General Guidelines
 - Responses must be Markdown-ready
-- Be mobile-friendly, clear, and well-structured
-- Use at least 4-5 sentences per reply
+- Be clear and well-structured
+- Provide helpful, accurate information
 
 Current conversation context:
 ${conversationHistory
-  .slice(-10)
+  .slice(-5) // Reduced context length for better performance
   .map((msg) => `${msg.role}: ${msg.parts[0].text}`)
   .join('\n')}
     `.trim();
 
-    // Use Gemini AI with the system prompt prepended to the message
+    // Use AI with the system prompt prepended to the message
     const fullMessage = `${systemPrompt}\n\nUser message: ${message}`;
 
     const aiResponse = await fetchAIResponse(fullMessage, imageData);
@@ -883,19 +945,24 @@ ${conversationHistory
 
     if (
       error.message.includes('API key') ||
-      error.message.includes('API_KEY')
+      error.message.includes('API_KEY') ||
+      error.message.includes('Missing API key')
     ) {
-      return '## 🔑 API Key Error\n\nPlease check your Gemini AI API key configuration. The API key appears to be missing or invalid.';
+      return '## 🔑 Configuration Required\n\nPlease ensure your Gemini AI API key is properly configured in the environment variables.';
     }
 
     if (
       error.message.includes('quota') ||
       error.message.includes('rate limit')
     ) {
-      return '## ⚠️ Service Limit\n\nThe AI service is currently experiencing high demand. Please try again in a few moments.';
+      return '## ⚠️ Service Limit Reached\n\nThe AI service has reached its usage limit. Please try again later or check your API quota.';
     }
 
-    return '## ❌ Service Error\n\nSorry, I encountered an error while processing your request. This might be due to network issues or service temporarily being unavailable. Please try again.';
+    if (error.message.includes('unavailable')) {
+      return '## 🔧 Service Temporarily Unavailable\n\nThe AI service is currently unavailable. This might be due to network issues or maintenance. Please try again in a few minutes.';
+    }
+
+    return `## ❌ Service Error\n\nSorry, I encountered an error while processing your request: "${error.message}". Please try again later.`;
   }
 };
 

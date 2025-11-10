@@ -19,4 +19,7 @@ export default defineConfig({
   define: {
     global: 'globalThis',
   },
+  optimizeDeps: {
+    exclude: ['@google/generative-ai'], // Let Vite handle this
+  },
 });
