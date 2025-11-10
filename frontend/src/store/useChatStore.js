@@ -81,25 +81,6 @@ export const useChatStore = create((set, get) => ({
   },
 
   // 🔹 Send message to backend
-  // sendMessage: async (chatId, text, sender = 'User') => {
-  //   try {
-  //     const { data } = await axiosInstance.post('/messages', {
-  //       chatId,
-  //       text,
-  //       sender,
-  //     });
-  //     get().addMessage(chatId, data);
-
-  //     // Rename chat if first message
-  //     const messages = get().chatMessages[chatId] || [];
-  //     if (messages.length === 1) get().renameChat(chatId, text.slice(0, 30));
-  //     return data;
-  //   } catch (error) {
-  //     console.error('Error sending message:', error);
-  //   }
-  // },
-
-  // 🔹 Send message to backend
   sendMessage: async (chatId, text, sender = 'User') => {
     try {
       const { data } = await axiosInstance.post('/messages', {

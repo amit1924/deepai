@@ -96,11 +96,11 @@ const MessageInput = ({
         className="hidden"
       />
 
-      <div className="relative bg-gray-900 rounded-2xl border border-gray-600 focus-within:border-blue-500 transition-colors duration-200 bottom-3">
+      <div className="relative bg-gray-900 rounded-2xl border border-gray-600 focus-within:border-blue-500 transition-colors duration-200 bottom-3 top-8">
         <div className="flex items-center px-3 md:p-2">
           <textarea
             ref={textareaRef}
-            className="flex-1 bg-transparent text-white placeholder-gray-400 resize-none outline-none min-h-[40px] max-h-[120px] py-3 px-2 text-xl leading-tight"
+            className="flex-1 bg-transparent text-white placeholder-gray-400 resize-none outline-none min-h-[40px] max-h-[120px] py-3 px-2 text-xl leading-tight scrollbar-thin scrollbar-thumb-gray-700 scrollbar-track-gray-800"
             placeholder={
               hasImage ? 'Ask about the image...' : 'Type your message...'
             }

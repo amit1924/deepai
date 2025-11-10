@@ -388,7 +388,7 @@ body {
 
 .message-copy-button:focus,
 .message-copy-full-button:focus {
-  outline: 2px solid #60a5fa;
+  outline: 2px solid #fa6060;
   outline-offset: 2px;
 }
 
