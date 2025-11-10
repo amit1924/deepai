@@ -357,7 +357,7 @@ const MessageInput = ({
   const handleBlur = () => setIsFocused(false);
 
   return (
-    <div className="w-full px-3 sm:px-4 lg:px-6 pb-8 md:pb-6 pt-2">
+    <div className="w-full px-3 sm:px-4 lg:px-6 pb-12 md:pb-6 pt-4">
       {/* Hidden file input */}
       <input
         type="file"
