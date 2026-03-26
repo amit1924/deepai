@@ -59,13 +59,19 @@ const extractTextFromChildren = (children) => {
   return '';
 };
 
-const MessageRenderer = ({ text, enableTypewriter = true, typewriterSpeed = 25 }) => {
+const MessageRenderer = ({ 
+  text, 
+  isNew = false,  // Add this prop to indicate if it's a new message
+  typewriterSpeed = 25 
+}) => {
   const [codeCopiedStates, setCodeCopiedStates] = useState({});
-  const { displayText, isComplete } = useTypewriter(text, typewriterSpeed, enableTypewriter);
   
-  // Use displayText for typewriter effect, fallback to original text
-  const contentToRender = enableTypewriter ? displayText : text;
-  const isTyping = enableTypewriter && !isComplete;
+  // Only enable typewriter for new messages
+  const { displayText, isComplete } = useTypewriter(text, typewriterSpeed, isNew);
+  
+  // Use displayText for typewriter effect, fallback to original text for old messages
+  const contentToRender = isNew ? displayText : text;
+  const isTyping = isNew && !isComplete;
 
   const handleCopyCode = useCallback(async (codeId, content) => {
     try {
@@ -267,7 +273,7 @@ const MessageRenderer = ({ text, enableTypewriter = true, typewriterSpeed = 25 }
           {contentToRender}
         </ReactMarkdown>
         
-        {/* Typing indicator */}
+        {/* Only show typing indicator for new messages that are still typing */}
         {isTyping && (
           <div className="inline-flex items-center gap-1 mt-2">
             <span className="w-2 h-2 bg-gray-400 rounded-full animate-bounce" style={{ animationDelay: '0ms' }}></span>
