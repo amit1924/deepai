@@ -1,5 +1,5 @@
 import React, { useRef, useState, useEffect } from 'react';
-import { Send, Image, Mic, Square, Upload, X } from 'lucide-react';
+import { Send, Image, Mic, X, Paperclip, Smile } from 'lucide-react';
 
 const MessageInput = ({
   input,
@@ -11,238 +11,81 @@ const MessageInput = ({
   onImageSelect,
 }) => {
   const [isRecording, setIsRecording] = useState(false);
-  const [isDragging, setIsDragging] = useState(false);
-  const [mediaRecorder, setMediaRecorder] = useState(null);
-  const [audioChunks, setAudioChunks] = useState([]);
-  const [recordingTime, setRecordingTime] = useState(0);
+  const [isFocused, setIsFocused] = useState(false);
+  const [showSuggestions, setShowSuggestions] = useState(false);
   const fileInputRef = useRef(null);
   const textareaRef = useRef(null);
-  const recordingIntervalRef = useRef(null);
+  const containerRef = useRef(null);
 
-  // Cleanup on unmount
+  // Common suggested questions
+  const suggestions = [
+    "What can you tell me about this image?",
+    "Describe what you see in detail",
+    "What colors are in this image?",
+    "Can you analyze the composition?",
+    "What's the mood of this image?"
+  ];
+
+  // Auto-resize textarea
   useEffect(() => {
-    return () => {
-      if (recordingIntervalRef.current) {
-        clearInterval(recordingIntervalRef.current);
-      }
-      if (mediaRecorder && mediaRecorder.state === 'recording') {
-        mediaRecorder.stop();
-      }
-    };
-  }, [mediaRecorder]);
-
-  // Initialize media recorder
-  const initializeMediaRecorder = async () => {
-    try {
-      const stream = await navigator.mediaDevices.getUserMedia({
-        audio: {
-          echoCancellation: true,
-          noiseSuppression: true,
-          sampleRate: 44100,
-        },
-      });
-
-      const recorder = new MediaRecorder(stream);
-      const chunks = [];
-
-      recorder.ondataavailable = (e) => {
-        if (e.data.size > 0) {
-          chunks.push(e.data);
-        }
-      };
-
-      recorder.onstop = async () => {
-        const audioBlob = new Blob(chunks, { type: 'audio/wav' });
-        await convertSpeechToText(audioBlob);
-
-        // Stop all tracks
-        stream.getTracks().forEach((track) => track.stop());
-        setAudioChunks([]);
-      };
-
-      setMediaRecorder(recorder);
-      return recorder;
-    } catch (error) {
-      console.error('Error accessing microphone:', error);
-      alert(
-        'Cannot access microphone. Please check your permissions and try again.',
-      );
-      return null;
+    if (textareaRef.current) {
+      textareaRef.current.style.height = 'auto';
+      textareaRef.current.style.height = Math.min(textareaRef.current.scrollHeight, 120) + 'px';
     }
-  };
-
-  // Convert speech to text using Web Speech API
-  const convertSpeechToText = (audioBlob) => {
-    return new Promise((resolve) => {
-      // Note: For production, you'd want to use a proper speech-to-text API
-      // This is a simplified version using the Web Speech API (browser support varies)
-
-      if (
-        !('webkitSpeechRecognition' in window || 'SpeechRecognition' in window)
-      ) {
-        alert(
-          'Speech recognition is not supported in your browser. Please try Chrome or Edge.',
-        );
-        resolve('');
-        return;
-      }
-
-      const SpeechRecognition =
-        window.SpeechRecognition || window.webkitSpeechRecognition;
-      const recognition = new SpeechRecognition();
-
-      recognition.continuous = false;
-      recognition.interimResults = false;
-      recognition.lang = 'en-US';
-
-      recognition.onresult = (event) => {
-        const transcript = event.results[0][0].transcript;
-        setInput((prev) => prev + (prev ? ' ' + transcript : transcript));
-        resolve(transcript);
-      };
-
-      recognition.onerror = (event) => {
-        console.error('Speech recognition error:', event.error);
-        if (event.error === 'not-allowed') {
-          alert(
-            'Microphone permission denied. Please allow microphone access and try again.',
-          );
-        }
-        resolve('');
-      };
-
-      recognition.onend = () => {
-        resolve('');
-      };
-
-      // For demo purposes, we'll simulate transcription since Web Speech API
-      // typically works with direct microphone input rather than audio blobs
-      // In a real app, you'd send the audioBlob to a speech-to-text service
-      setTimeout(() => {
-        alert(
-          'Voice recording completed! In a production app, this would be converted to text using a speech-to-text API.',
-        );
-        resolve('');
-      }, 500);
-    });
-  };
-
-  // Start recording
-  const startRecording = async () => {
-    try {
-      const recorder = await initializeMediaRecorder();
-      if (!recorder) return;
-
-      const chunks = [];
-      setAudioChunks(chunks);
-      setRecordingTime(0);
-
-      // Start recording
-      recorder.start(1000); // Collect data every second
-      setIsRecording(true);
-
-      // Start recording timer
-      recordingIntervalRef.current = setInterval(() => {
-        setRecordingTime((prev) => prev + 1);
-      }, 1000);
-    } catch (error) {
-      console.error('Error starting recording:', error);
-      setIsRecording(false);
-    }
-  };
-
-  // Stop recording
-  const stopRecording = () => {
-    if (mediaRecorder && mediaRecorder.state === 'recording') {
-      mediaRecorder.stop();
-    }
-
-    if (recordingIntervalRef.current) {
-      clearInterval(recordingIntervalRef.current);
-      recordingIntervalRef.current = null;
-    }
-
-    setIsRecording(false);
-    setRecordingTime(0);
-  };
-
-  // Toggle recording
-  const toggleRecording = async () => {
-    if (isRecording) {
-      stopRecording();
-    } else {
-      await startRecording();
-    }
-  };
+  }, [input]);
 
   // Handle image selection
   const handleImageSelect = (file) => {
     if (file && onImageSelect) {
       onImageSelect(file);
     }
+    setShowSuggestions(false);
   };
 
-  // Handle file input change
+  // Handle file upload
   const handleFileChange = (e) => {
     const file = e.target.files[0];
-    if (file) {
+    if (file && file.type.startsWith('image/')) {
       handleImageSelect(file);
     }
-    e.target.value = ''; // Reset input
+    e.target.value = '';
   };
 
-  // Handle drag and drop
-  const handleDragOver = (e) => {
-    e.preventDefault();
-    setIsDragging(true);
-  };
-
-  const handleDragLeave = (e) => {
-    e.preventDefault();
-    setIsDragging(false);
-  };
-
-  const handleDrop = (e) => {
-    e.preventDefault();
-    setIsDragging(false);
-
-    const files = e.dataTransfer.files;
-    if (files.length > 0) {
-      const file = files[0];
-      if (file.type.startsWith('image/')) {
-        handleImageSelect(file);
-      } else {
-        alert('Please drop an image file');
-      }
+  // Simulate voice recording (beautiful animation)
+  const toggleRecording = () => {
+    if (!isRecording) {
+      setIsRecording(true);
+      // Simulate recording for demo
+      setTimeout(() => {
+        if (isRecording) {
+          setIsRecording(false);
+          setInput(prev => prev + (prev ? ' ' : '') + "I'd like to know more about this");
+        }
+      }, 3000);
+    } else {
+      setIsRecording(false);
     }
   };
 
-  // Handle send button click
+  // Handle send with animation
   const handleSendClick = () => {
     if (!isLoading && (input.trim() || hasImage)) {
       onSend();
-      // Auto-resize textarea
+      // Shrink textarea
       if (textareaRef.current) {
         textareaRef.current.style.height = 'auto';
       }
+      setShowSuggestions(false);
     }
   };
 
-  // Auto-resize textarea
-  const handleTextareaChange = (e) => {
-    setInput(e.target.value);
-
-    // Auto-resize
-    const textarea = e.target;
-    textarea.style.height = 'auto';
-    textarea.style.height = Math.min(textarea.scrollHeight, 120) + 'px';
-  };
-
-  // Handle key press in textarea
+  // Handle key press
   const handleKeyDown = (e) => {
     if (e.key === 'Enter' && !e.shiftKey) {
       e.preventDefault();
-      onKeyPress(e);
+      if (!isLoading && (input.trim() || hasImage)) {
+        handleSendClick();
+      }
     }
   };
 
@@ -254,120 +97,144 @@ const MessageInput = ({
     }
   };
 
-  // Format recording time
-  const formatRecordingTime = (seconds) => {
-    const mins = Math.floor(seconds / 60);
-    const secs = seconds % 60;
-    return `${mins.toString().padStart(2, '0')}:${secs
-      .toString()
-      .padStart(2, '0')}`;
+  // Use suggestion
+  const useSuggestion = (suggestion) => {
+    setInput(suggestion);
+    setShowSuggestions(false);
+    textareaRef.current?.focus();
   };
 
   return (
-    <div className="w-full">
-      {/* Drag and Drop Overlay */}
-      {isDragging && (
-        <div
-          className="fixed inset-0 bg-blue-500/10 border-2 border-dashed border-blue-400 flex items-center justify-center z-50"
-          onDragOver={handleDragOver}
-          onDragLeave={handleDragLeave}
-          onDrop={handleDrop}
-        >
-          <div className="text-center bg-gray-900/90 p-8 rounded-lg">
-            <Upload className="w-12 h-12 text-blue-400 mx-auto mb-4" />
-            <p className="text-white text-lg font-semibold">
-              Drop image to analyze
-            </p>
-            <p className="text-gray-300">Supported formats: JPG, PNG, WebP</p>
+    <div className="relative w-full max-w-4xl mx-auto">
+      {/* Suggestions Popup */}
+      {showSuggestions && hasImage && (
+        <div className="absolute bottom-full left-0 right-0 mb-2 bg-gray-800 rounded-xl shadow-xl border border-gray-700 overflow-hidden animate-slideUp">
+          <div className="p-2">
+            <div className="text-xs text-gray-400 px-3 py-2">Suggested questions about this image:</div>
+            {suggestions.map((suggestion, idx) => (
+              <button
+                key={idx}
+                onClick={() => useSuggestion(suggestion)}
+                className="w-full text-left px-3 py-2 text-sm text-gray-300 hover:bg-gray-700 rounded-lg transition-colors duration-150"
+              >
+                {suggestion}
+              </button>
+            ))}
           </div>
         </div>
       )}
 
-      {/* Input Container */}
+      {/* Main Input Container */}
       <div
+        ref={containerRef}
         className={`
-          relative w-full rounded-xl transition-all duration-200
-          ${
-            isDragging
-              ? 'bg-blue-500/10 border-2 border-blue-400'
-              : 'bg-gray-800/50'
-          }
+          relative bg-gray-800/80 backdrop-blur-sm rounded-2xl transition-all duration-300
+          border ${isFocused ? 'border-blue-500 shadow-lg shadow-blue-500/20' : 'border-gray-700'}
+          ${hasImage ? 'ring-2 ring-blue-500/30' : ''}
         `}
-        onDragOver={handleDragOver}
-        onDragLeave={handleDragLeave}
-        onDrop={handleDrop}
       >
-        {/* Recording Indicator */}
-        {isRecording && (
-          <div className="flex items-center gap-2 px-4 pt-3 pb-2">
-            <div className="flex items-center gap-2 text-red-400 text-sm">
-              <div className="w-2 h-2 bg-red-400 rounded-full animate-pulse" />
-              <span>Recording... {formatRecordingTime(recordingTime)}</span>
+        {/* Image Preview Bar */}
+        {hasImage && (
+          <div className="flex items-center gap-3 px-4 pt-3 pb-2 border-b border-gray-700">
+            <div className="relative">
+              <div className="w-8 h-8 bg-blue-500/20 rounded-lg flex items-center justify-center">
+                <Image size={16} className="text-blue-400" />
+              </div>
+              <div className="absolute -top-1 -right-1 w-2 h-2 bg-blue-500 rounded-full animate-pulse" />
             </div>
-            <button
-              onClick={stopRecording}
-              className="text-gray-400 hover:text-white text-sm ml-auto"
-            >
-              Stop
-            </button>
-          </div>
-        )}
-
-        {/* Image Preview Indicator */}
-        {hasImage && !isRecording && (
-          <div className="flex items-center gap-2 px-4 pt-3 pb-2">
-            <div className="flex items-center gap-2 text-blue-400 text-sm">
-              <Image size={16} />
-              <span>Image ready for analysis</span>
-            </div>
+            <span className="text-sm text-gray-300 flex-1">
+              Image ready for analysis
+            </span>
             <button
               onClick={() => fileInputRef.current?.click()}
-              className="text-gray-400 hover:text-white text-sm ml-auto"
+              className="text-xs text-blue-400 hover:text-blue-300 transition-colors"
             >
               Change
             </button>
           </div>
         )}
 
-        {/* Text Input Area */}
+        {/* Recording Bar */}
+        {isRecording && (
+          <div className="flex items-center gap-3 px-4 pt-3 pb-2 border-b border-gray-700">
+            <div className="flex items-center gap-2">
+              <div className="relative">
+                <div className="w-2 h-2 bg-red-500 rounded-full animate-ping" />
+                <div className="w-2 h-2 bg-red-500 rounded-full absolute top-0" />
+              </div>
+              <span className="text-sm text-red-400 font-medium">Recording</span>
+            </div>
+            <div className="flex-1">
+              <div className="h-1 bg-gray-700 rounded-full overflow-hidden">
+                <div className="h-full bg-gradient-to-r from-red-500 to-red-400 rounded-full animate-pulse" style={{ width: '100%' }} />
+              </div>
+            </div>
+            <button
+              onClick={toggleRecording}
+              className="text-xs text-gray-400 hover:text-white transition-colors"
+            >
+              Stop
+            </button>
+          </div>
+        )}
+
+        {/* Input Area */}
         <div className="flex items-end gap-2 p-3">
-          {/* Action Buttons */}
-          <div className="flex items-center gap-1 flex-shrink-0">
-            {/* Image Upload Button */}
+          {/* Left Actions */}
+          <div className="flex items-center gap-1">
+            {/* Image Upload */}
             <button
               onClick={() => fileInputRef.current?.click()}
-              disabled={isLoading || isRecording}
+              disabled={isLoading}
               className={`
-                p-2 rounded-lg transition-all duration-200
-                ${
-                  isLoading || isRecording
-                    ? 'text-gray-500 cursor-not-allowed'
-                    : 'text-gray-400 hover:text-white hover:bg-gray-700/50'
+                group relative p-2 rounded-xl transition-all duration-200
+                ${isLoading 
+                  ? 'text-gray-600 cursor-not-allowed' 
+                  : 'text-gray-400 hover:text-blue-400 hover:bg-gray-700/50'
                 }
               `}
-              title="Upload image for analysis"
+              title="Upload image"
             >
-              <Image size={20} />
+              <Paperclip size={20} className="transform group-hover:rotate-12 transition-transform" />
+              <span className="absolute -top-8 left-1/2 transform -translate-x-1/2 bg-gray-900 text-xs text-white px-2 py-1 rounded opacity-0 group-hover:opacity-100 transition-opacity whitespace-nowrap">
+                Upload image
+              </span>
             </button>
 
-            {/* Voice Recording Button */}
+            {/* Voice Input */}
             <button
               onClick={toggleRecording}
               disabled={isLoading}
               className={`
-                p-2 rounded-lg transition-all duration-200
-                ${
-                  isLoading
-                    ? 'text-gray-500 cursor-not-allowed'
-                    : isRecording
+                group relative p-2 rounded-xl transition-all duration-200
+                ${isLoading 
+                  ? 'text-gray-600 cursor-not-allowed' 
+                  : isRecording
                     ? 'text-red-400 bg-red-400/10 animate-pulse'
-                    : 'text-gray-400 hover:text-white hover:bg-gray-700/50'
+                    : 'text-gray-400 hover:text-purple-400 hover:bg-gray-700/50'
                 }
               `}
-              title={isRecording ? 'Stop recording' : 'Start voice recording'}
+              title={isRecording ? "Stop recording" : "Voice input"}
             >
-              {isRecording ? <Square size={20} /> : <Mic size={20} />}
+              <Mic size={20} />
+              <span className="absolute -top-8 left-1/2 transform -translate-x-1/2 bg-gray-900 text-xs text-white px-2 py-1 rounded opacity-0 group-hover:opacity-100 transition-opacity whitespace-nowrap">
+                {isRecording ? "Stop recording" : "Voice input"}
+              </span>
             </button>
+
+            {/* Suggestions Button (only when image is present) */}
+            {hasImage && (
+              <button
+                onClick={() => setShowSuggestions(!showSuggestions)}
+                className="group relative p-2 rounded-xl transition-all duration-200 text-gray-400 hover:text-green-400 hover:bg-gray-700/50"
+                title="Get suggestions"
+              >
+                <Smile size={20} />
+                <span className="absolute -top-8 left-1/2 transform -translate-x-1/2 bg-gray-900 text-xs text-white px-2 py-1 rounded opacity-0 group-hover:opacity-100 transition-opacity whitespace-nowrap">
+                  Suggestions
+                </span>
+              </button>
+            )}
           </div>
 
           {/* Text Input */}
@@ -375,36 +242,36 @@ const MessageInput = ({
             <textarea
               ref={textareaRef}
               value={input}
-              onChange={handleTextareaChange}
+              onChange={(e) => setInput(e.target.value)}
               onKeyDown={handleKeyDown}
+              onFocus={() => setIsFocused(true)}
+              onBlur={() => setIsFocused(false)}
               placeholder={
                 hasImage
-                  ? 'Ask me about this image...'
+                  ? "Ask me anything about this image..."
                   : isRecording
-                  ? 'Recording in progress...'
-                  : 'Type your message...'
+                  ? "Listening... speak now"
+                  : "Type your message..."
               }
               disabled={isLoading || isRecording}
               rows={1}
               className={`
-                w-full resize-none bg-transparent text-white placeholder-gray-400
-                border-none outline-none focus:ring-0 focus:outline-none
-                max-h-32 overflow-y-auto scrollbar-thin
-                ${
-                  isLoading || isRecording
-                    ? 'cursor-not-allowed opacity-50'
-                    : ''
-                }
+                w-full bg-transparent text-white placeholder-gray-500
+                border-none outline-none resize-none
+                text-base leading-6
+                ${(isLoading || isRecording) ? 'cursor-not-allowed opacity-50' : ''}
               `}
-              style={{ height: 'auto' }}
+              style={{ 
+                minHeight: '44px',
+                maxHeight: '120px'
+              }}
             />
-
-            {/* Clear Input Button (shown when there's text) */}
+            
+            {/* Clear Button */}
             {input && !isLoading && !isRecording && (
               <button
                 onClick={clearInput}
-                className="absolute right-2 top-1/2 transform -translate-y-1/2 text-gray-400 hover:text-white transition-colors"
-                title="Clear input"
+                className="absolute right-0 top-1/2 transform -translate-y-1/2 p-1 text-gray-500 hover:text-gray-300 transition-colors"
               >
                 <X size={16} />
               </button>
@@ -416,33 +283,40 @@ const MessageInput = ({
             onClick={handleSendClick}
             disabled={isLoading || isRecording || (!input.trim() && !hasImage)}
             className={`
-              flex items-center justify-center p-3 rounded-xl transition-all duration-200
+              flex items-center justify-center w-10 h-10 rounded-xl transition-all duration-200
               transform active:scale-95
-              ${
-                isLoading || isRecording || (!input.trim() && !hasImage)
-                  ? 'bg-gray-600 text-gray-400 cursor-not-allowed'
-                  : 'bg-blue-600 hover:bg-blue-700 text-white shadow-lg hover:shadow-blue-500/25'
+              ${isLoading || isRecording || (!input.trim() && !hasImage)
+                ? 'bg-gray-700 text-gray-500 cursor-not-allowed'
+                : 'bg-gradient-to-r from-blue-500 to-blue-600 text-white shadow-lg hover:shadow-blue-500/25 hover:from-blue-600 hover:to-blue-700'
               }
             `}
-            title="Send message"
           >
             {isLoading ? (
               <div className="w-5 h-5 border-2 border-white border-t-transparent rounded-full animate-spin" />
             ) : (
-              <Send size={20} />
+              <Send size={18} />
             )}
           </button>
         </div>
 
-        {/* Character Count & Help Text */}
-        <div className="px-4 pb-2 flex justify-between items-center">
-          <div className="text-xs text-gray-500">
-            {input.length > 0 && `${input.length} characters`}
+        {/* Footer */}
+        <div className="px-4 pb-2 flex justify-between items-center text-xs text-gray-500">
+          <div className="flex items-center gap-2">
+            {input.length > 0 && (
+              <span>{input.length} characters</span>
+            )}
+            {hasImage && !input && (
+              <span className="text-blue-400">✨ Image ready</span>
+            )}
           </div>
-          <div className="text-xs text-gray-500 flex items-center gap-2">
-            <span>↑↓ Navigate</span>
-            <span>•</span>
-            <span>Enter to send</span>
+          <div className="flex items-center gap-3">
+            <kbd className="px-1.5 py-0.5 bg-gray-700 rounded text-[10px]">Shift</kbd>
+            <span>+</span>
+            <kbd className="px-1.5 py-0.5 bg-gray-700 rounded text-[10px]">Enter</kbd>
+            <span>for new line</span>
+            <span className="w-px h-3 bg-gray-700" />
+            <kbd className="px-1.5 py-0.5 bg-gray-700 rounded text-[10px]">Enter</kbd>
+            <span>to send</span>
           </div>
         </div>
       </div>
@@ -455,188 +329,34 @@ const MessageInput = ({
         accept="image/*"
         className="hidden"
       />
-
-      {/* Drag and Drop Hint */}
     </div>
   );
 };
 
+// Add animation to your global CSS or tailwind config
+const styles = `
+  @keyframes slideUp {
+    from {
+      opacity: 0;
+      transform: translateY(10px);
+    }
+    to {
+      opacity: 1;
+      transform: translateY(0);
+    }
+  }
+  
+  .animate-slideUp {
+    animation: slideUp 0.2s ease-out;
+  }
+`;
+
+// Inject styles if not already present
+if (typeof document !== 'undefined' && !document.querySelector('#message-input-styles')) {
+  const styleSheet = document.createElement('style');
+  styleSheet.id = 'message-input-styles';
+  styleSheet.textContent = styles;
+  document.head.appendChild(styleSheet);
+}
+
 export default MessageInput;
-
-// import React, { useRef, useState } from 'react';
-// import { Send, Image, Mic, Paperclip } from 'lucide-react';
-
-// const MessageInput = ({
-//   input,
-//   setInput,
-//   isLoading,
-//   onSend,
-//   onKeyPress,
-//   hasImage,
-//   onImageSelect,
-// }) => {
-//   const [isListening, setIsListening] = useState(false);
-//   const fileInputRef = useRef(null);
-//   const recognitionRef = useRef(null);
-
-//   const handleSend = () => {
-//     if (isListening) stopListening();
-//     onSend();
-//   };
-
-//   const handleKeyDown = (e) => {
-//     if (e.key === 'Enter' && !e.shiftKey) {
-//       e.preventDefault();
-//       handleSend();
-//     }
-//   };
-
-//   const handleImageClick = () => {
-//     fileInputRef.current?.click();
-//   };
-
-//   const handleFileSelect = (e) => {
-//     const file = e.target.files[0];
-//     if (file && onImageSelect) {
-//       onImageSelect(file);
-//     }
-//     e.target.value = '';
-//   };
-
-//   // Simple voice input
-//   const startListening = () => {
-//     if (!('webkitSpeechRecognition' in window)) {
-//       alert('Voice input not supported in your browser');
-//       return;
-//     }
-
-//     const recognition = new window.webkitSpeechRecognition();
-//     recognition.continuous = false;
-//     recognition.interimResults = false;
-//     recognition.lang = 'en-US';
-
-//     recognition.onstart = () => {
-//       setIsListening(true);
-//     };
-
-//     recognition.onresult = (e) => {
-//       const transcript = e.results[0][0].transcript;
-//       setInput(transcript);
-//       setIsListening(false);
-//     };
-
-//     recognition.onerror = () => {
-//       setIsListening(false);
-//     };
-
-//     recognition.onend = () => {
-//       setIsListening(false);
-//     };
-
-//     recognition.start();
-//     recognitionRef.current = recognition;
-//   };
-
-//   const stopListening = () => {
-//     if (recognitionRef.current) {
-//       recognitionRef.current.stop();
-//     }
-//     setIsListening(false);
-//   };
-
-//   const toggleVoice = () => {
-//     if (isListening) {
-//       stopListening();
-//     } else {
-//       startListening();
-//     }
-//   };
-
-//   return (
-//     <div className="w-full bg-gray-800 rounded-2xl p-3">
-//       {/* Input Row */}
-//       <div className="flex items-end gap-2 w-full">
-//         {/* Image Upload Button */}
-//         <button
-//           onClick={handleImageClick}
-//           disabled={isLoading}
-//           className="flex-shrink-0 w-10 h-10 flex items-center justify-center bg-gray-700 rounded-xl active:bg-gray-600 disabled:opacity-50 transition-colors"
-//         >
-//           <Paperclip size={20} className="text-white" />
-//         </button>
-
-//         {/* Text Input */}
-//         <div className="flex-1 min-w-0">
-//           <textarea
-//             value={input}
-//             onChange={(e) => setInput(e.target.value)}
-//             onKeyDown={handleKeyDown}
-//             placeholder="Type your message..."
-//             disabled={isLoading}
-//             rows={1}
-//             className="w-full bg-gray-700 text-white text-base placeholder-gray-400 rounded-xl px-4 py-3 resize-none min-h-[44px] focus:outline-none focus:ring-2 focus:ring-blue-500 disabled:opacity-50"
-//             style={{ lineHeight: '1.4' }}
-//             onInput={(e) => {
-//               e.target.style.height = 'auto';
-//               e.target.style.height =
-//                 Math.min(e.target.scrollHeight, 120) + 'px';
-//             }}
-//           />
-//         </div>
-
-//         {/* Voice Button */}
-//         <button
-//           onClick={toggleVoice}
-//           disabled={isLoading}
-//           className={`flex-shrink-0 w-10 h-10 flex items-center justify-center rounded-xl transition-colors ${
-//             isListening
-//               ? 'bg-red-500 text-white'
-//               : 'bg-gray-700 text-white active:bg-gray-600'
-//           } disabled:opacity-50`}
-//         >
-//           <Mic size={20} />
-//         </button>
-
-//         {/* Send Button */}
-//         <button
-//           onClick={handleSend}
-//           disabled={(!input.trim() && !hasImage) || isLoading}
-//           className="flex-shrink-0 w-10 h-10 flex items-center justify-center bg-blue-600 rounded-xl active:bg-blue-700 disabled:opacity-50 disabled:bg-gray-600 transition-colors"
-//         >
-//           <Send size={18} className="text-white" />
-//         </button>
-//       </div>
-
-//       {/* Image Upload Status */}
-//       {hasImage && (
-//         <div className="mt-2 px-3 py-2 bg-blue-500/20 rounded-lg">
-//           <div className="flex items-center gap-2">
-//             <Image size={16} className="text-blue-400" />
-//             <span className="text-blue-300 text-sm">Image ready to send</span>
-//           </div>
-//         </div>
-//       )}
-
-//       {/* Voice Listening Status */}
-//       {isListening && (
-//         <div className="mt-2 px-3 py-2 bg-red-500/20 rounded-lg">
-//           <div className="flex items-center gap-2">
-//             <div className="w-2 h-2 bg-red-400 rounded-full animate-pulse" />
-//             <span className="text-red-300 text-sm">Listening... Speak now</span>
-//           </div>
-//         </div>
-//       )}
-
-//       {/* Hidden file input */}
-//       <input
-//         type="file"
-//         ref={fileInputRef}
-//         onChange={handleFileSelect}
-//         accept="image/*"
-//         className="hidden"
-//       />
-//     </div>
-//   );
-// };
-
-// export default MessageInput;
