@@ -1,5 +1,43 @@
 import WeatherService from './WeatherService';
 
+// Remove AI initialization - we'll use a different approach
+let aiInitialized = false;
+let genAI = null;
+let model = null;
+
+// Initialize AI only when needed with proper error handling
+const initializeAI = async () => {
+  if (aiInitialized && model) {
+    return model;
+  }
+
+  try {
+    // Check if we're in a browser environment
+    if (typeof window === 'undefined') {
+      throw new Error('AI service only available in browser environment');
+    }
+
+    // Use window global for dynamic import to work in Vercel
+    const { GoogleGenerativeAI } = await import(
+      'https://esm.run/@google/generative-ai'
+    );
+
+    if (!import.meta.env.VITE_API_KEY) {
+      throw new Error('Missing API key');
+    }
+
+    genAI = new GoogleGenerativeAI(import.meta.env.VITE_API_KEY);
+    model = genAI.getGenerativeModel({ model: 'gemini-2.5-flash' });
+    aiInitialized = true;
+
+    return model;
+  } catch (error) {
+    console.error('Failed to initialize AI:', error);
+    aiInitialized = false;
+    throw new Error(`AI service unavailable: ${error.message}`);
+  }
+};
+
 // Weather command patterns
 const WEATHER_COMMANDS = [
   /weather in (.+)/i,
@@ -25,74 +63,107 @@ const CURRENT_LOCATION_WEATHER_COMMANDS = [
   /what's the weather/i,
 ];
 
-// Streaming AI response using Gemini API
-const streamAIResponse = async (message, onChunk, imageData = null) => {
-  const API_KEY = import.meta.env.VITE_API_KEY;
+// Alternative: Use a fetch-based approach to Gemini API
+const fetchAIDirect = async (message, imageData = null) => {
+  try {
+    const API_KEY = import.meta.env.VITE_API_KEY;
 
-  if (!API_KEY) {
-    throw new Error('Missing Gemini API key');
-  }
+    if (!API_KEY) {
+      throw new Error('Missing Gemini API key');
+    }
 
-  const url = `https://generativelanguage.googleapis.com/v1beta/models/gemini-2.5-flash:streamGenerateContent?key=${API_KEY}`;
+    const url = `https://generativelanguage.googleapis.com/v1beta/models/gemini-2.5-flash:generateContent?key=${API_KEY}`;
 
-  const requestBody = {
-    contents: [
-      {
-        parts: [{ text: message }],
+    const requestBody = {
+      contents: [
+        {
+          parts: [{ text: message }],
+        },
+      ],
+    };
+
+    // Add image data if provided
+    if (imageData) {
+      const base64Data = imageData.split(',')[1];
+      requestBody.contents[0].parts.push({
+        inline_data: {
+          mime_type: 'image/png',
+          data: base64Data,
+        },
+      });
+    }
+
+    const response = await fetch(url, {
+      method: 'POST',
+      headers: {
+        'Content-Type': 'application/json',
       },
-    ],
-  };
-
-  // Add image data if provided
-  if (imageData) {
-    const base64Data = imageData.split(',')[1];
-    requestBody.contents[0].parts.push({
-      inline_data: {
-        mime_type: 'image/png',
-        data: base64Data,
-      },
+      body: JSON.stringify(requestBody),
     });
+
+    if (!response.ok) {
+      const errorData = await response.json();
+      throw new Error(errorData.error?.message || 'AI request failed');
+    }
+
+    const data = await response.json();
+    return (
+      data.candidates?.[0]?.content?.parts?.[0]?.text ||
+      "I couldn't generate a response."
+    );
+  } catch (error) {
+    console.error('Direct AI fetch error:', error);
+    throw error;
   }
+};
 
-  const response = await fetch(url, {
-    method: 'POST',
-    headers: {
-      'Content-Type': 'application/json',
-    },
-    body: JSON.stringify(requestBody),
-  });
+// Gemini AI response function
+const fetchAIResponse = async (
+  message,
+  imageData = null,
+  mimeType = 'image/png',
+) => {
+  try {
+    // Try direct fetch first (more reliable for deployment)
+    return await fetchAIDirect(message, imageData);
+  } catch (error) {
+    console.error('Direct fetch failed, trying SDK:', error);
 
-  if (!response.ok) {
-    const errorData = await response.json();
-    throw new Error(errorData.error?.message || 'AI request failed');
-  }
+    // Fallback to SDK if direct fetch fails
+    try {
+      const aiModel = await initializeAI();
 
-  const reader = response.body.getReader();
-  const decoder = new TextDecoder('utf-8');
-  let buffer = '';
-
-  while (true) {
-    const { done, value } = await reader.read();
-    if (done) break;
-
-    buffer += decoder.decode(value, { stream: true });
-    const lines = buffer.split('\n');
-    buffer = lines.pop() || '';
-
-    for (const line of lines) {
-      if (!line.trim()) continue;
-
-      try {
-        const jsonStr = line.replace(/^data:\s*/, '');
-        const json = JSON.parse(jsonStr);
-        const text = json.candidates?.[0]?.content?.parts?.[0]?.text || '';
-
-        if (text) {
-          onChunk(text);
-        }
-      } catch (err) {
-        continue;
+      if (!aiModel) {
+        throw new Error('AI model not available');
       }
+
+      const contents = imageData
+        ? [
+            {
+              role: 'user',
+              parts: [
+                { text: message },
+                {
+                  inlineData: {
+                    data: imageData.split(',')[1],
+                    mimeType: mimeType,
+                  },
+                },
+              ],
+            },
+          ]
+        : [{ role: 'user', parts: [{ text: message }] }];
+
+      const result = await aiModel.generateContent({ contents });
+      return (
+        result?.response?.candidates?.[0]?.content?.parts?.[0]?.text ||
+        "I couldn't generate a response. Please try again."
+      );
+    } catch (sdkError) {
+      console.error('Both AI methods failed:', sdkError);
+      throw new Error(
+        'AI service is currently unavailable. Please try again later.',
+      );
     }
   }
 };
@@ -101,12 +172,14 @@ const streamAIResponse = async (message, onChunk, imageData = null) => {
 const checkWeatherQuery = (message) => {
   const lowerMessage = message.toLowerCase();
 
+  // Check for current location weather
   for (const pattern of CURRENT_LOCATION_WEATHER_COMMANDS) {
     if (pattern.test(lowerMessage)) {
       return { type: 'current_location', city: null };
     }
   }
 
+  // Check for specific city weather
   for (const pattern of WEATHER_COMMANDS) {
     const match = message.match(pattern);
     if (match && match[1]) {
@@ -186,7 +259,158 @@ Sorry, I couldn't find weather data for "${weatherMatch.city}".
   }
 };
 
-// Main streaming function for AI responses
+// Streaming AI response using Gemini API
+const streamAIResponse = async (message, onChunk, imageData = null) => {
+  const API_KEY = import.meta.env.VITE_API_KEY;
+
+  if (!API_KEY) {
+    throw new Error('Missing Gemini API key');
+  }
+
+  const url = `https://generativelanguage.googleapis.com/v1beta/models/gemini-2.5-flash:streamGenerateContent?key=${API_KEY}`;
+
+  const requestBody = {
+    contents: [
+      {
+        parts: [{ text: message }],
+      },
+    ],
+  };
+
+  // Add image data if provided
+  if (imageData) {
+    const base64Data = imageData.split(',')[1];
+    requestBody.contents[0].parts.push({
+      inline_data: {
+        mime_type: 'image/png',
+        data: base64Data,
+      },
+    });
+  }
+
+  const response = await fetch(url, {
+    method: 'POST',
+    headers: {
+      'Content-Type': 'application/json',
+    },
+    body: JSON.stringify(requestBody),
+  });
+
+  if (!response.ok) {
+    const errorData = await response.json();
+    throw new Error(errorData.error?.message || 'AI request failed');
+  }
+
+  const reader = response.body.getReader();
+  const decoder = new TextDecoder('utf-8');
+  let buffer = '';
+
+  while (true) {
+    const { done, value } = await reader.read();
+    if (done) break;
+
+    buffer += decoder.decode(value, { stream: true });
+    const lines = buffer.split('\n');
+    buffer = lines.pop() || '';
+
+    for (const line of lines) {
+      if (!line.trim()) continue;
+
+      try {
+        const jsonStr = line.replace(/^data:\s*/, '');
+        const json = JSON.parse(jsonStr);
+        const text = json.candidates?.[0]?.content?.parts?.[0]?.text || '';
+
+        if (text) {
+          onChunk(text);
+        }
+      } catch (err) {
+        continue;
+      }
+    }
+  }
+};
+
+// Main function to send message to AI (original function - unchanged)
+export const sendMessageToAI = async (
+  message,
+  chatId,
+  previousMessages = [],
+  imageData = null,
+) => {
+  try {
+    // Check if message is a weather query
+    const weatherMatch = checkWeatherQuery(message);
+    if (weatherMatch) {
+      return await handleWeatherQuery(weatherMatch, message);
+    }
+
+    // Prepare conversation history for context
+    const conversationHistory = previousMessages.map((msg) => ({
+      role: msg.sender === 'User' ? 'user' : 'model',
+      parts: [{ text: msg.text }],
+    }));
+
+    // Build the prompt with system instructions
+    const systemPrompt = `
+You are a thoughtful and knowledgeable AI assistant.
+
+## Response Formatting Rules
+- Use headings (#, ##, ###) for sections
+- Use bullet points (- or *) for lists
+- Use **bold** for emphasis
+- Use \`inline code\` and \`\`\`code blocks\`\`\`
+- Use > for blockquotes
+- Use tables for comparisons
+- Separate sections with blank lines
+
+## Comparison Questions
+When asked for comparisons, use Markdown tables with relevant features.
+
+## General Guidelines
+- Responses must be Markdown-ready
+- Be clear and well-structured
+- Provide helpful, accurate information
+
+Current conversation context:
+${conversationHistory
+  .slice(-5) // Reduced context length for better performance
+  .map((msg) => `${msg.role}: ${msg.parts[0].text}`)
+  .join('\n')}
+    `.trim();
+
+    // Use AI with the system prompt prepended to the message
+    const fullMessage = `${systemPrompt}\n\nUser message: ${message}`;
+
+    const aiResponse = await fetchAIResponse(fullMessage, imageData);
+    return aiResponse;
+  } catch (error) {
+    console.error('Error in AI service:', error);
+
+    if (
+      error.message.includes('API key') ||
+      error.message.includes('API_KEY') ||
+      error.message.includes('Missing API key')
+    ) {
+      return '## 🔑 Configuration Required\n\nPlease ensure your Gemini AI API key is properly configured in the environment variables.';
+    }
+
+    if (
+      error.message.includes('quota') ||
+      error.message.includes('rate limit')
+    ) {
+      return '## ⚠️ Service Limit Reached\n\nThe AI service has reached its usage limit. Please try again later or check your API quota.';
+    }
+
+    if (error.message.includes('unavailable')) {
+      return '## 🔧 Service Temporarily Unavailable\n\nThe AI service is currently unavailable. This might be due to network issues or maintenance. Please try again in a few minutes.';
+    }
+
+    return `## ❌ Service Error\n\nSorry, I encountered an error while processing your request: "${error.message}". Please try again later.`;
+  }
+};
+
+// NEW: Streaming version of sendMessageToAI (added without breaking existing code)
 export const sendMessageToAIStream = async (
   message,
   chatId,
@@ -277,171 +501,5 @@ ${conversationHistory
   }
 };
 
-// Main function to send message to AI (non-streaming - kept for backward compatibility)
-export const sendMessageToAI = async (
-  message,
-  chatId,
-  previousMessages = [],
-  imageData = null,
-) => {
-  return new Promise((resolve, reject) => {
-    let fullResponse = '';
-    
-    sendMessageToAIStream(
-      message,
-      chatId,
-      previousMessages,
-      (chunk) => {
-        fullResponse += chunk;
-      },
-      imageData
-    ).then(() => {
-      resolve(fullResponse);
-    }).catch((error) => {
-      reject(error);
-    });
-  });
-};
-
 // Export the fetchAIResponse function if needed elsewhere
 export { fetchAIResponse };
-
-// Initialize AI only when needed with proper error handling
-let aiInitialized = false;
-let genAI = null;
-let model = null;
-
-const initializeAI = async () => {
-  if (aiInitialized && model) {
-    return model;
-  }
-
-  try {
-    if (typeof window === 'undefined') {
-      throw new Error('AI service only available in browser environment');
-    }
-
-    const { GoogleGenerativeAI } = await import(
-      'https://esm.run/@google/generative-ai'
-    );
-
-    if (!import.meta.env.VITE_API_KEY) {
-      throw new Error('Missing API key');
-    }
-
-    genAI = new GoogleGenerativeAI(import.meta.env.VITE_API_KEY);
-    model = genAI.getGenerativeModel({ model: 'gemini-2.5-flash' });
-    aiInitialized = true;
-
-    return model;
-  } catch (error) {
-    console.error('Failed to initialize AI:', error);
-    aiInitialized = false;
-    throw new Error(`AI service unavailable: ${error.message}`);
-  }
-};
-
-// Alternative: Use a fetch-based approach to Gemini API
-const fetchAIDirect = async (message, imageData = null) => {
-  try {
-    const API_KEY = import.meta.env.VITE_API_KEY;
-
-    if (!API_KEY) {
-      throw new Error('Missing Gemini API key');
-    }
-
-    const url = `https://generativelanguage.googleapis.com/v1beta/models/gemini-2.5-flash:generateContent?key=${API_KEY}`;
-
-    const requestBody = {
-      contents: [
-        {
-          parts: [{ text: message }],
-        },
-      ],
-    };
-
-    if (imageData) {
-      const base64Data = imageData.split(',')[1];
-      requestBody.contents[0].parts.push({
-        inline_data: {
-          mime_type: 'image/png',
-          data: base64Data,
-        },
-      });
-    }
-
-    const response = await fetch(url, {
-      method: 'POST',
-      headers: {
-        'Content-Type': 'application/json',
-      },
-      body: JSON.stringify(requestBody),
-    });
-
-    if (!response.ok) {
-      const errorData = await response.json();
-      throw new Error(errorData.error?.message || 'AI request failed');
-    }
-
-    const data = await response.json();
-    return (
-      data.candidates?.[0]?.content?.parts?.[0]?.text ||
-      "I couldn't generate a response."
-    );
-  } catch (error) {
-    console.error('Direct AI fetch error:', error);
-    throw error;
-  }
-};
-
-// Gemini AI response function
-const fetchAIResponse = async (
-  message,
-  imageData = null,
-  mimeType = 'image/png',
-) => {
-  try {
-    return await fetchAIDirect(message, imageData);
-  } catch (error) {
-    console.error('Direct fetch failed, trying SDK:', error);
-
-    try {
-      const aiModel = await initializeAI();
-
-      if (!aiModel) {
-        throw new Error('AI model not available');
-      }
-
-      const contents = imageData
-        ? [
-            {
-              role: 'user',
-              parts: [
-                { text: message },
-                {
-                  inlineData: {
-                    data: imageData.split(',')[1],
-                    mimeType: mimeType,
-                  },
-                },
-              ],
-            },
-          ]
-        : [{ role: 'user', parts: [{ text: message }] }];
-
-      const result = await aiModel.generateContent({ contents });
-      return (
-        result?.response?.candidates?.[0]?.content?.parts?.[0]?.text ||
-        "I couldn't generate a response. Please try again."
-      );
-    } catch (sdkError) {
-      console.error('Both AI methods failed:', sdkError);
-      throw new Error(
-        'AI service is currently unavailable. Please try again later.',
-      );
-    }
-  }
-};
-
-// Export everything
-export default sendMessageToAIStream;
