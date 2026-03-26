@@ -28,12 +28,9 @@ const AiPage = ({ setIsSidebarOpen }) => {
     }
   }, [activeChat, fetchMessages]);
 
-  // Get messages after they're fetched - MOVED BEFORE handleSend
-  const messages = chatMessages[activeChat?._id] || [];
-
   useEffect(() => {
     scrollToBottom();
-  }, [messages, isLoading]);
+  }, [chatMessages, isLoading]);
 
   const scrollToBottom = () => {
     setTimeout(() => {
@@ -123,7 +120,6 @@ const AiPage = ({ setIsSidebarOpen }) => {
     try {
       await sendMessage(activeChat._id, userInput, 'User');
 
-      // Use the messages variable that's already defined
       const previousMessages = messages;
       const aiReplyText = await sendMessageToAI(
         userInput,
@@ -175,6 +171,8 @@ const AiPage = ({ setIsSidebarOpen }) => {
       </div>
     );
   }
+
+  const messages = chatMessages[activeChat._id] || [];
 
   return (
     <div className="flex flex-col h-full bg-gray-900">
@@ -370,7 +368,7 @@ const AiPage = ({ setIsSidebarOpen }) => {
           </div>
         )}
 
-        {messages.map((msg, index) => (
+        {messages.map((msg) => (
           <div
             key={msg._id}
             className={`w-full max-w-full p-4 rounded-lg ${
@@ -431,11 +429,7 @@ const AiPage = ({ setIsSidebarOpen }) => {
                   </div>
                 </div>
               ) : (
-                <MessageRenderer
-                  text={msg.text}
-                  isNew={index === messages.length - 1 && msg.sender === 'AI'}
-                  streamSpeed={80}
-                />
+                <MessageRenderer text={msg.text} />
               )
             ) : (
               <div className="whitespace-pre-wrap text-gray-100">
