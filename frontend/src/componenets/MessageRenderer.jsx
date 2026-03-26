@@ -5,45 +5,79 @@ import rehypeHighlight from 'rehype-highlight';
 import 'highlight.js/styles/atom-one-dark.css';
 import { Copy, Check } from 'lucide-react';
 
-/* ---------------- STREAMING HOOK (CHATGPT STYLE) ---------------- */
-const useStreamText = (text, speed = 20, enabled = true) => {
-  const [displayText, setDisplayText] = useState('');
+/* ---------------- SPLIT TEXT + CODE ---------------- */
+const splitContent = (text) => {
+  const regex = /(```[\s\S]*?```)/g;
+  const parts = text.split(regex).filter(Boolean);
+
+  return parts.map(part => ({
+    type: part.startsWith('```') ? 'code' : 'text',
+    content: part,
+  }));
+};
+
+/* ---------------- STREAM HOOK (WORD BASED) ---------------- */
+const useStream = (text, speed = 25, enabled = true) => {
+  const [output, setOutput] = useState('');
   const [isComplete, setIsComplete] = useState(false);
 
   useEffect(() => {
     if (!enabled) {
-      setDisplayText(text);
+      setOutput(text);
       setIsComplete(true);
       return;
     }
 
-    const words = text.split(' ');
-    let index = 0;
+    const parts = splitContent(text);
 
-    setDisplayText('');
+    let currentText = '';
+    let partIndex = 0;
+
+    setOutput('');
     setIsComplete(false);
 
     const interval = setInterval(() => {
-      if (index < words.length) {
-        setDisplayText(prev => prev + (index === 0 ? '' : ' ') + words[index]);
-        index++;
-      } else {
+      if (partIndex >= parts.length) {
         clearInterval(interval);
         setIsComplete(true);
+        return;
       }
+
+      const part = parts[partIndex];
+
+      // 💻 CODE BLOCK → instant render
+      if (part.type === 'code') {
+        currentText += part.content;
+        setOutput(currentText);
+        partIndex++;
+        return;
+      }
+
+      // 🧠 TEXT → word streaming
+      const words = part.content.split(' ');
+      if (!part.wordIndex) part.wordIndex = 0;
+
+      if (part.wordIndex < words.length) {
+        currentText += (currentText ? ' ' : '') + words[part.wordIndex];
+        part.wordIndex++;
+        setOutput(currentText);
+      } else {
+        partIndex++;
+      }
+
     }, speed);
 
     return () => clearInterval(interval);
   }, [text, speed, enabled]);
 
-  return { displayText, isComplete };
+  return { output, isComplete };
 };
 
 /* ---------------- HELPER ---------------- */
-const extractTextFromChildren = (children) => {
+const extractText = (children) => {
   if (typeof children === 'string') return children;
-  if (Array.isArray(children)) return children.map(extractTextFromChildren).join('');
-  if (children?.props?.children) return extractTextFromChildren(children.props.children);
+  if (Array.isArray(children)) return children.map(extractText).join('');
+  if (children?.props?.children) return extractText(children.props.children);
   return '';
 };
 
@@ -51,20 +85,19 @@ const extractTextFromChildren = (children) => {
 const MessageRenderer = ({
   text,
   isNew = false,
-  streamSpeed = 15,
+  streamSpeed = 20,
 }) => {
-  const [codeCopiedStates, setCodeCopiedStates] = useState({});
+  const [copiedMap, setCopiedMap] = useState({});
 
-  const { displayText, isComplete } = useStreamText(text, streamSpeed, isNew);
-
-  const content = isNew ? displayText : text;
+  const { output, isComplete } = useStream(text, streamSpeed, isNew);
+  const content = isNew ? output : text;
   const isTyping = isNew && !isComplete;
 
-  const handleCopyCode = useCallback(async (id, content) => {
+  const handleCopy = useCallback(async (id, content) => {
     await navigator.clipboard.writeText(content);
-    setCodeCopiedStates(prev => ({ ...prev, [id]: true }));
+    setCopiedMap(prev => ({ ...prev, [id]: true }));
     setTimeout(() => {
-      setCodeCopiedStates(prev => ({ ...prev, [id]: false }));
+      setCopiedMap(prev => ({ ...prev, [id]: false }));
     }, 1500);
   }, []);
 
@@ -83,7 +116,7 @@ const MessageRenderer = ({
       <a className="text-blue-400 hover:underline" target="_blank" rel="noreferrer" {...props} />
     ),
 
-    /* -------- TABLE FIX -------- */
+    /* -------- TABLE -------- */
     table: ({ children }) => (
       <div className="overflow-x-auto my-4">
         <table className="min-w-full border border-gray-700 text-sm">{children}</table>
@@ -93,9 +126,9 @@ const MessageRenderer = ({
     th: (props) => <th className="bg-gray-700 px-4 py-2 text-cyan-300 border" {...props} />,
     td: (props) => <td className="px-4 py-2 border text-gray-200" {...props} />,
 
-    /* -------- CODE BLOCK -------- */
-    code: ({ inline, children, className, node }) => {
-      const content = extractTextFromChildren(children);
+    /* -------- CODE -------- */
+    code: ({ inline, children, className }) => {
+      const content = extractText(children);
 
       if (inline) {
         return (
@@ -106,13 +139,12 @@ const MessageRenderer = ({
       }
 
       const id = `code-${codeIndex++}`;
-      const copied = codeCopiedStates[id];
+      const copied = copiedMap[id];
 
       return (
         <div className="relative my-4 rounded-xl overflow-hidden">
-          {/* COPY BUTTON */}
           <button
-            onClick={() => handleCopyCode(id, content)}
+            onClick={() => handleCopy(id, content)}
             className="absolute top-2 right-2 bg-gray-800 px-2 py-1 rounded text-xs text-white"
           >
             {copied ? 'Copied ✅' : 'Copy'}
@@ -137,9 +169,10 @@ const MessageRenderer = ({
         {content}
       </ReactMarkdown>
 
-      {/* 🔥 ChatGPT-like typing indicator */}
+      {/* 🔥 Cursor + typing indicator */}
       {isTyping && (
-        <div className="flex gap-1 mt-2">
+        <div className="flex items-center gap-1 mt-2">
+          <span className="w-[2px] h-5 bg-white animate-pulse"></span>
           <span className="w-2 h-2 bg-gray-400 rounded-full animate-bounce"></span>
           <span className="w-2 h-2 bg-gray-400 rounded-full animate-bounce delay-150"></span>
           <span className="w-2 h-2 bg-gray-400 rounded-full animate-bounce delay-300"></span>
