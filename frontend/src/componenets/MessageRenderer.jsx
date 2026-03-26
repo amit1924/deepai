@@ -9,7 +9,7 @@ import { Copy, Check } from "lucide-react";
 const CodeBlock = ({ inline, className, children, node }) => {
   const [copied, setCopied] = useState(false);
 
-  // ✅ Extract REAL TEXT (fix for [object Object])
+  // ✅ Fix [object Object] issue
   const code =
     typeof children === "string"
       ? children
@@ -30,13 +30,21 @@ const CodeBlock = ({ inline, className, children, node }) => {
   }
 
   return (
-    <div className="relative group my-4">
-      {/* Copy Button */}
+    <div className="relative my-4">
+      {/* ✅ ALWAYS VISIBLE COPY BUTTON */}
       <button
         onClick={handleCopy}
-        className="absolute top-2 right-2 opacity-0 group-hover:opacity-100 transition bg-gray-800 hover:bg-gray-700 p-1.5 rounded-md text-white"
+        className="absolute top-2 right-2 text-xs bg-gray-800 hover:bg-gray-700 px-2 py-1 rounded-md text-white shadow-md"
       >
-        {copied ? <Check size={14} /> : <Copy size={14} />}
+        {copied ? (
+          <span className="flex items-center gap-1">
+            <Check size={14} /> Copied
+          </span>
+        ) : (
+          <span className="flex items-center gap-1">
+            <Copy size={14} /> Copy
+          </span>
+        )}
       </button>
 
       <pre className="overflow-x-auto rounded-xl bg-[#0d1117] p-4 text-sm">
@@ -59,13 +67,20 @@ const MessageRenderer = ({ text }) => {
   return (
     <div className="relative bg-gradient-to-br from-gray-900 to-gray-800 p-5 rounded-2xl shadow-xl">
 
-      {/* Copy Full Message */}
+      {/* ✅ COPY FULL RESPONSE */}
       <button
         onClick={handleCopyAll}
         className="absolute top-3 right-3 flex items-center gap-1 text-xs bg-gray-800 hover:bg-gray-700 px-2 py-1 rounded-md text-white"
       >
-        {copiedAll ? <Check size={14} /> : <Copy size={14} />}
-        {copiedAll && "Copied"}
+        {copiedAll ? (
+          <>
+            <Check size={14} /> Copied
+          </>
+        ) : (
+          <>
+            <Copy size={14} /> Copy All
+          </>
+        )}
       </button>
 
       <ReactMarkdown
@@ -132,7 +147,7 @@ const MessageRenderer = ({ text }) => {
             />
           ),
 
-          /* ---------------- CODE FIX ---------------- */
+          /* ---------------- CODE ---------------- */
           code: CodeBlock,
         }}
       >
